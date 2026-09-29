@@ -433,7 +433,7 @@ services:
 
 > リリースタグは正確に `vX.Y.Z` を使います。Docker イメージタグでは `v` を付けません。`v1.0.9` の次は `v1.1.0`、`v1.1.9` の次は `v1.2.0`、`v1.9.9` の次は `v2.0.0` です。`v1.0.10` から `v1.0.13` までは不変です。
 
-> v1.2.3 は OpenCode 1.18.32、OpenSpec 1.13.2、Claude Code 2.1.281、Undici 6.28.1 を使用する Paperclip 2026.831.1、npm 12.1.0、tsx 4.23.15、pnpm 12.6.0、Vite 8.3.1、ESLint 10.11.0、Prettier 3.9.9、Lighthouse 13.5.0、drizzle-kit 0.31.11、Miniflare 5.20260921.1-alpha と workerd 1.20260921.1 を使用する Wrangler 4.138.0、Prisma 7.10.0、TypeScript 6.0.3、json-server 0.17.4 を使用します。Python には Playwright 1.63.0、pandas 3.0.6、Matplotlib 3.11.2、tqdm 4.70.1、FastAPI 0.141.1、Uvicorn 0.53.0、NumPy 2.5.3 が含まれます。`opencode-claude-auth` 2.2.1 はイメージに収録され、起動時にオフラインでインストールされます。Netlify CLI と npm パッケージの `serve` は引き続き含まれません。HolyCode が管理する oh-my-openagent のインストールは停止しており、Hermes は引き続き利用できません。外部管理の CLIProxyAPI エンドポイントは引き続き利用できます。
+> v1.2.3 は OpenCode 2.0.18、OpenSpec 1.13.2、Claude Code 2.1.281、Undici 6.28.1 を使用する Paperclip 2026.831.1、npm 12.1.0、tsx 4.23.15、pnpm 12.6.0、Vite 8.3.1、ESLint 10.11.0、Prettier 3.9.9、Lighthouse 13.5.0、drizzle-kit 0.31.11、Miniflare 5.20260921.1-alpha と workerd 1.20260921.1 を使用する Wrangler 4.138.0、Prisma 7.10.0、TypeScript 6.0.3、json-server 0.17.4 を使用します。Python には Playwright 1.63.0、pandas 3.0.6、Matplotlib 3.11.2、tqdm 4.70.1、FastAPI 0.141.1、Uvicorn 0.53.0、NumPy 2.5.3 が含まれます。`opencode-claude-auth` 2.2.1 はイメージに収録され、起動時にオフラインでインストールされます。Netlify CLI と npm パッケージの `serve` は引き続き含まれません。HolyCode が管理する oh-my-openagent のインストールは停止しており、Hermes は引き続き利用できません。外部管理の CLIProxyAPI エンドポイントは引き続き利用できます。
 
 </details>
 

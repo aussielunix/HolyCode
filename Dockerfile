@@ -1,6 +1,6 @@
 # ==============================================================================
 # HolyCode - Pre-configured Docker Environment for OpenCode
-# https://github.com/coderluii/holycode
+# https://github.com/aussielunix/holycode
 # ==============================================================================
 
 # renovate: datasource=github-releases depName=cli/cli
@@ -113,8 +113,8 @@ ARG S6_OVERLAY_VERSION=3.2.3.2
 ARG DELTA_VERSION=0.19.2
 # renovate: datasource=github-releases depName=eza-community/eza
 ARG EZA_VERSION=0.23.5
-# renovate: datasource=npm depName=opencode-ai
-ARG OPENCODE_VERSION=1.18.32
+# renovate: datasource=npm depName=@opencode/cli
+ARG OPENCODE_VERSION=2.0.18
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
 ARG CLAUDE_CODE_VERSION=2.1.281
 # renovate: datasource=npm depName=paperclipai
@@ -445,7 +445,7 @@ RUN test "$(npm view "ip-address@${NPM_IP_ADDRESS_VERSION}" dist.integrity)" = \
 
 # ---------- OpenCode (AI coding agent) ----------
 # Installed via npm as root (global install needs write access to /usr/local/lib)
-RUN npm i -g --ignore-scripts "opencode-ai@${OPENCODE_VERSION}" "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
+RUN npm i -g --ignore-scripts "@opencode/cli@${OPENCODE_VERSION}" "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
       "@fission-ai/openspec@${OPENSPEC_VERSION}" && \
     rm -rf /root/.npm
 ENV PATH="/home/opencode/.local/bin:${PATH}"
@@ -717,7 +717,7 @@ RUN python3 /usr/local/bin/validate-npm-script-policy \
       --policy /usr/local/share/holycode/npm-global-script-policy.json \
       --root /usr/local/lib/node_modules \
       --target-arch "${TARGETARCH}" && \
-    (cd /usr/local/lib/node_modules/opencode-ai && node ./postinstall.mjs) && \
+    (cd /usr/local/lib/node_modules/@opencode/cli && node ./postinstall.mjs) && \
     (cd /usr/local/lib/node_modules/@anthropic-ai/claude-code && node install.cjs) && \
     POSTGRES_PACKAGE=$(find /usr/local/lib/node_modules/paperclipai/node_modules/@embedded-postgres \
       -mindepth 1 -maxdepth 1 -type d -name 'linux-*' -print -quit) && \

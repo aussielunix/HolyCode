@@ -21,7 +21,6 @@ REQUIRED_PINS = {
     "docker/setup-buildx-action": ("f87e5991a6d7451dcb8d9637bfbc97413f497069", "v4.4.1"),
     "docker/login-action": ("dbcb813823bdd20940b903addbd779551569679f", "v4.6.0"),
     "docker/build-push-action": ("c3c9e263c25d99ce0380d002d59b67737d91b0dc", "v7.4.0"),
-    "peter-evans/dockerhub-description": ("1b9a80c056b620d92cedb9d9b5a223409c68ddfa", "v5.0.0"),
     "aquasecurity/trivy-action": ("ed142fd0673e97e23eac54620cfb913e5ce36c25", "v0.36.0"),
 }
 
@@ -68,7 +67,6 @@ def collect_errors() -> list[str]:
             "docker/setup-buildx-action",
             "docker/login-action",
             "docker/build-push-action",
-            "peter-evans/dockerhub-description",
             "aquasecurity/trivy-action",
         )
         if action not in seen
@@ -167,7 +165,6 @@ def collect_errors() -> list[str]:
         "Install Trivy CLI",
         "Generate pre-tag SPDX SBOM for Docker Scout",
         "Install Docker Scout CLI for pre-tag validation",
-        "Login to Docker Hub for pre-tag Docker Scout",
         "Generate pre-tag Docker Scout vulnerability reports",
         "Docker Scout pre-tag fixable critical and high gate",
         "Generate pre-tag Trivy vulnerability report",

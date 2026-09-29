@@ -60,7 +60,7 @@ That's it. Open your browser and start building.
 
 🌐 **Headless Browser** — Chromium + Xvfb + Playwright, pre-configured for screenshots, scraping, and browser automation.
 
-🛠️ **50+ Dev Tools:** Node.js 24.21.0 LTS with npm 12.1.0, Python 3.13 on Trixie, OpenCode 1.18.32, OpenSpec 1.13.2, Paperclip 2026.831.1, eza 0.23.5, fzf 0.74.4, lazygit 0.65.1, pnpm 12.6.0, tsx 4.23.15, Vite 8.3.1, ESLint 10.11.0, Prettier 3.9.9, Wrangler 4.138.0 with Miniflare 5.20260921.1-alpha and workerd 1.20260921.1, Prisma 7.10.0, Lighthouse 13.5.0, Playwright 1.63.0, pandas 3.0.6, Matplotlib 3.11.2, tqdm 4.70.1, FastAPI 0.141.1, Uvicorn 0.53.0, Claude stable 2.1.281, TypeScript 6.0.3, NumPy 2.5.3, json-server 0.17.4, git, ripgrep, bat, delta, gh CLI 2.101.0, and more.
+🛠️ **50+ Dev Tools:** Node.js 24.21.0 LTS with npm 12.1.0, Python 3.13 on Trixie, OpenCode 2.0.18, OpenSpec 1.13.2, Paperclip 2026.831.1, eza 0.23.5, fzf 0.74.4, lazygit 0.65.1, pnpm 12.6.0, tsx 4.23.15, Vite 8.3.1, ESLint 10.11.0, Prettier 3.9.9, Wrangler 4.138.0 with Miniflare 5.20260921.1-alpha and workerd 1.20260921.1, Prisma 7.10.0, Lighthouse 13.5.0, Playwright 1.63.0, pandas 3.0.6, Matplotlib 3.11.2, tqdm 4.70.1, FastAPI 0.141.1, Uvicorn 0.53.0, Claude stable 2.1.281, TypeScript 6.0.3, NumPy 2.5.3, json-server 0.17.4, git, ripgrep, bat, delta, gh CLI 2.101.0, and more.
 
 TypeScript stays on 6.0.3 because TypeScript 7 removes the `tsserver` command and changes the stable programmatic API surface. Prisma stays on stable 7.10.0 instead of the 8.0 release candidate, and json-server stays on stable 0.17.4 instead of the 1.0 beta. Netlify CLI, `serve`, Vercel, sharp-cli, concurrently, and LHCI are not bundled. Wrangler's removed `legacy_env` mode is not supported.
 

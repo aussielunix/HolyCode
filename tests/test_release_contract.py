@@ -83,7 +83,7 @@ class ReleaseContractTests(unittest.TestCase):
             "ARG GITHUB_CLI_VERSION=2.101.0",
             "ARG FZF_VERSION=0.74.4",
             "ARG LAZYGIT_VERSION=0.65.1",
-            "ARG OPENCODE_VERSION=1.18.32",
+            "ARG OPENCODE_VERSION=2.0.18",
             "ARG CLAUDE_CODE_VERSION=2.1.281",
             "ARG PAPERCLIP_VERSION=2026.831.1",
             "ARG OPENSPEC_VERSION=1.13.2",
@@ -1039,7 +1039,7 @@ class ReleaseContractTests(unittest.TestCase):
             with self.subTest(translation=path.name):
                 for value in (
                     "v1.2.3",
-                    "OpenCode 1.18.32",
+                    "OpenCode 2.0.18",
                     "OpenSpec 1.13.2",
                     "Claude Code 2.1.281",
                     "pnpm 12.6.0",
@@ -1403,7 +1403,6 @@ class ReleaseContractTests(unittest.TestCase):
             "Install Trivy CLI",
             "Generate pre-tag SPDX SBOM for Docker Scout",
             "Install Docker Scout CLI for pre-tag validation",
-            "Login to Docker Hub for pre-tag Docker Scout",
             "Generate pre-tag Docker Scout vulnerability reports",
             "Docker Scout pre-tag fixable critical and high gate",
             "Generate pre-tag Trivy vulnerability report",
@@ -1431,13 +1430,19 @@ class ReleaseContractTests(unittest.TestCase):
                 self.pr_validation,
                 "Generate pre-tag SPDX SBOM for Docker Scout",
                 "Install Docker Scout CLI for pre-tag validation",
+                "Generate pre-tag Docker Scout vulnerability reports",
             ),
-            (self.protected, "Generate SPDX SBOM for Docker Scout", "Install Docker Scout CLI"),
+            (
+                self.protected,
+                "Generate SPDX SBOM for Docker Scout",
+                "Install Docker Scout CLI",
+                "Docker Scout vulnerability reports",
+            ),
         )
-        for workflow, trivy_next_step, scout_step_name in workflows:
+        for workflow, trivy_next_step, scout_step_name, scout_next_step in workflows:
             for step_name, next_step_name in (
                 ("Install Trivy CLI", trivy_next_step),
-                (scout_step_name, "Login to Docker Hub"),
+                (scout_step_name, scout_next_step),
             ):
                 with self.subTest(step=step_name):
                     step = re.search(
@@ -1682,8 +1687,8 @@ class ReleaseContractTests(unittest.TestCase):
             {"postinstall": "node install.cjs"},
         )
         self.assertEqual(
-            policy["allowScripts"]["opencode-ai@1.18.32"]["integrity"],
-            "sha512-SCrZWdq44y/EoH2+fE4HLcXS+DzpVqHPzmXk3p2RrufYy8LWvpfhRhKtijb5ktvx8r94ScqToqwHxR0BwS65OQ==",
+            policy["allowScripts"]["@opencode/cli@2.0.18"]["integrity"],
+            "sha512-EkIxIa2goJ2v8U3Os2gpRckOIjN9gpUBXy6fyVOFbPZl71rkGpoF3NFsm4nlDiF2BgnIqcgJU5NgdV1k6/OZuw==",
         )
         self.assertEqual(
             policy["blockedScripts"]["esbuild@0.28.1"]["integrity"],

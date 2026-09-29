@@ -433,7 +433,7 @@ services:
 
 > 릴리스 태그는 정확히 `vX.Y.Z`를 사용합니다. Docker 이미지 태그에서는 `v`를 뺍니다. `v1.0.9` 다음은 `v1.1.0`, `v1.1.9` 다음은 `v1.2.0`, `v1.9.9` 다음은 `v2.0.0`입니다. `v1.0.10`부터 `v1.0.13`까지는 변경되지 않습니다.
 
-> v1.2.3는 OpenCode 1.18.32, OpenSpec 1.13.2, Claude Code 2.1.281, Undici 6.28.1을 사용하는 Paperclip 2026.831.1, npm 12.1.0, tsx 4.23.15, pnpm 12.6.0, Vite 8.3.1, ESLint 10.11.0, Prettier 3.9.9, Lighthouse 13.5.0, drizzle-kit 0.31.11, Miniflare 5.20260921.1-alpha와 workerd 1.20260921.1을 사용하는 Wrangler 4.138.0, Prisma 7.10.0, TypeScript 6.0.3, json-server 0.17.4를 사용합니다. Python에는 Playwright 1.63.0, pandas 3.0.6, Matplotlib 3.11.2, tqdm 4.70.1, FastAPI 0.141.1, Uvicorn 0.53.0, NumPy 2.5.3이 포함됩니다. `opencode-claude-auth` 2.2.1은 이미지에 포함되며 시작 시 오프라인으로 설치됩니다. Netlify CLI와 npm 패키지 `serve`는 계속 포함되지 않습니다. HolyCode가 관리하는 oh-my-openagent 설치는 중단되었고 Hermes는 계속 사용할 수 없습니다. 외부에서 관리하는 CLIProxyAPI 엔드포인트는 계속 지원됩니다.
+> v1.2.3는 OpenCode 2.0.18, OpenSpec 1.13.2, Claude Code 2.1.281, Undici 6.28.1을 사용하는 Paperclip 2026.831.1, npm 12.1.0, tsx 4.23.15, pnpm 12.6.0, Vite 8.3.1, ESLint 10.11.0, Prettier 3.9.9, Lighthouse 13.5.0, drizzle-kit 0.31.11, Miniflare 5.20260921.1-alpha와 workerd 1.20260921.1을 사용하는 Wrangler 4.138.0, Prisma 7.10.0, TypeScript 6.0.3, json-server 0.17.4를 사용합니다. Python에는 Playwright 1.63.0, pandas 3.0.6, Matplotlib 3.11.2, tqdm 4.70.1, FastAPI 0.141.1, Uvicorn 0.53.0, NumPy 2.5.3이 포함됩니다. `opencode-claude-auth` 2.2.1은 이미지에 포함되며 시작 시 오프라인으로 설치됩니다. Netlify CLI와 npm 패키지 `serve`는 계속 포함되지 않습니다. HolyCode가 관리하는 oh-my-openagent 설치는 중단되었고 Hermes는 계속 사용할 수 없습니다. 외부에서 관리하는 CLIProxyAPI 엔드포인트는 계속 지원됩니다.
 
 </details>
 

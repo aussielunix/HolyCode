@@ -59,7 +59,7 @@ podman run -d \
   --env-file .env \
   -e PUID=$(id -u) \
   -e PGID=$(id -g) \
-  docker.io/coderluii/holycode:latest
+  ghcr.io/aussielunix/holycode:latest
 ```
 
 Open http://localhost:4096.
@@ -74,7 +74,7 @@ What the important options do:
 - `./workspace:/workspace` mounts your project files.
 - `--env-file .env` loads provider keys and optional HolyCode toggles without putting secrets in shell history.
 - `PUID` and `PGID` tell HolyCode which host UID/GID to use for file ownership inside mounted paths.
-- `docker.io/coderluii/holycode:latest` fully qualifies the Docker Hub image for Podman.
+- `ghcr.io/aussielunix/holycode:latest` fully qualifies the Docker Hub image for Podman.
 
 If you use a different host folder, keep the container paths unchanged. `/home/opencode`, `/home/opencode/.cache/opencode`, and `/workspace` are the paths HolyCode expects inside the container.
 
@@ -95,7 +95,7 @@ podman run -d \
   --env-file .env \
   -e PUID=$(id -u) \
   -e PGID=$(id -g) \
-  docker.io/coderluii/holycode:latest
+  ghcr.io/aussielunix/holycode:latest
 ```
 
 Use `:z` only when the same host path must be shared by multiple containers. Do not casually relabel broad system paths or your entire home directory.
@@ -151,7 +151,7 @@ When upgrading from a release before `v1.1.3`, download `config/chromium-seccomp
 Pull the latest image:
 
 ```bash
-podman pull docker.io/coderluii/holycode:latest
+podman pull ghcr.io/aussielunix/holycode:latest
 ```
 
 Then recreate the container:
@@ -165,7 +165,7 @@ Run the `podman run` command again. Your data stays in `./data/opencode`, `./loc
 
 `v1.1.4` upgrades Paperclip from 2026.707.0 to 2026.722.0, removes Netlify CLI and `serve`, and suspends HolyCode-managed oh-my-openagent installation. Its one-time migration disables the old active plugin entry but keeps settings, skills, and cached package data. Keep the untouched pre-upgrade copies until Paperclip onboarding, Skills, agents, connections, OpenCode, Chromium, and your normal provider workflow have all passed.
 
-If you need to roll back, stop and remove the container, restore the untouched pre-`v1.1.4` copies, then recreate it with `docker.io/coderluii/holycode:1.1.3`. Rollback means restoring those snapshots, not reversing a Paperclip database migration in place. Never start `1.1.3` against data already migrated by `1.1.4`.
+If you need to roll back, stop and remove the container, restore the untouched pre-`v1.1.4` copies, then recreate it with `ghcr.io/aussielunix/holycode:1.1.3`. Rollback means restoring those snapshots, not reversing a Paperclip database migration in place. Never start `1.1.3` against data already migrated by `1.1.4`.
 
 Do not use `podman start holycode` as an update path. It restarts the existing container with the old image, environment variables, ports, and mount settings.
 

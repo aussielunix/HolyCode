@@ -70,7 +70,7 @@
         "@anthropic-ai/claude-code",
         "@fission-ai/openspec",
         "cli/cli",
-        "coderluii/holycode",
+        "ghcr.io/aussielunix/holycode",
         "dandavison/delta",
         "docker/scout-cli",
         "eza-community/eza",
@@ -79,7 +79,7 @@
         "just-containers/s6-overlay",
         "golang",
         "node",
-        "opencode-ai",
+        "@opencode/cli",
         "opencode-claude-auth",
         "paperclipai",
         "typescript"

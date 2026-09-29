@@ -433,7 +433,7 @@ services:
 
 > 发布标签严格使用 `vX.Y.Z`。Docker 镜像标签会去掉 `v`。`v1.0.9` 之后使用 `v1.1.0`，`v1.1.9` 之后使用 `v1.2.0`，`v1.9.9` 之后使用 `v2.0.0`。`v1.0.10` 到 `v1.0.13` 保持不可变。
 
-> v1.2.3 使用 OpenCode 1.18.32、OpenSpec 1.13.2、Claude Code 2.1.281、带 Undici 6.28.1 的 Paperclip 2026.831.1、npm 12.1.0、tsx 4.23.15、pnpm 12.6.0、Vite 8.3.1、ESLint 10.11.0、Prettier 3.9.9、Lighthouse 13.5.0、drizzle-kit 0.31.11、带 Miniflare 5.20260921.1-alpha 和 workerd 1.20260921.1 的 Wrangler 4.138.0、Prisma 7.10.0、TypeScript 6.0.3 和 json-server 0.17.4。Python 包含 Playwright 1.63.0、pandas 3.0.6、Matplotlib 3.11.2、tqdm 4.70.1、FastAPI 0.141.1、Uvicorn 0.53.0 和 NumPy 2.5.3。`opencode-claude-auth` 2.2.1 已放入镜像，并在启动时离线安装。Netlify CLI 和 npm 包 `serve` 仍未包含。HolyCode 管理的 oh-my-openagent 安装已暂停，Hermes 仍不可用，外部管理的 CLIProxyAPI endpoint 继续受支持。
+> v1.2.3 使用 OpenCode 2.0.18、OpenSpec 1.13.2、Claude Code 2.1.281、带 Undici 6.28.1 的 Paperclip 2026.831.1、npm 12.1.0、tsx 4.23.15、pnpm 12.6.0、Vite 8.3.1、ESLint 10.11.0、Prettier 3.9.9、Lighthouse 13.5.0、drizzle-kit 0.31.11、带 Miniflare 5.20260921.1-alpha 和 workerd 1.20260921.1 的 Wrangler 4.138.0、Prisma 7.10.0、TypeScript 6.0.3 和 json-server 0.17.4。Python 包含 Playwright 1.63.0、pandas 3.0.6、Matplotlib 3.11.2、tqdm 4.70.1、FastAPI 0.141.1、Uvicorn 0.53.0 和 NumPy 2.5.3。`opencode-claude-auth` 2.2.1 已放入镜像，并在启动时离线安装。Netlify CLI 和 npm 包 `serve` 仍未包含。HolyCode 管理的 oh-my-openagent 安装已暂停，Hermes 仍不可用，外部管理的 CLIProxyAPI endpoint 继续受支持。
 
 </details>
 

@@ -1,4 +1,4 @@
-name: HolyCode - Build and Push to Docker Hub + GHCR
+name: HolyCode - Build and Push to GHCR
 run-name: ${{ github.ref_name }}
 
 on:
@@ -11,16 +11,17 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  DOCKERHUB_IMAGE: coderluii/holycode
-  GHCR_IMAGE: ghcr.io/coderluii/holycode
-  CANDIDATE_IMAGE: ghcr.io/coderluii/holycode
+  GHCR_IMAGE: ghcr.io/aussielunix/holycode
+  CANDIDATE_IMAGE: ghcr.io/aussielunix/holycode
+  # Previous published release baseline (upstream v1.2.2, digest-pinned). It is
+  # used only to validate upgrade/rollback by pulling a public image, so it can
+  # point at the upstream Docker Hub image and needs no registry credentials.
   PREVIOUS_IMAGE: coderluii/holycode:1.2.2@sha256:b3a7e4f6d71c57db2b90b90a5e5cd011117da7567369cf3de5c44a1d78e4ade6
   PREVIOUS_VERSION: v1.2.2
   RELEASE_VERSION: v1.2.3
 
-# Required secrets:
-#   DOCKERHUB_USERNAME - Docker Hub username with access to coderluii/holycode.
-#   DOCKERHUB_TOKEN - Docker Hub access token with push and description-update access.
+# No registry secrets are required: GHCR push uses the built-in GITHUB_TOKEN,
+# and vulnerability scanning runs offline against a local SBOM.
 
 jobs:
   build-candidate:
@@ -252,12 +253,6 @@ jobs:
           echo "$bin_dir" >> "$GITHUB_PATH"
           "$bin_dir/docker-scout" version
 
-      - name: Login to Docker Hub for Docker Scout
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Docker Scout vulnerability reports
         env:
           SCOUT_FIXABLE_REPORT: holycode-${{ matrix.suffix }}.scout-fixable.sarif
@@ -441,12 +436,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Login to GHCR
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
@@ -469,8 +458,6 @@ jobs:
           [ "$attestations" -ge 2 ]
 
           docker buildx imagetools create \
-            --tag "$DOCKERHUB_IMAGE:$version" \
-            --tag "$DOCKERHUB_IMAGE:latest" \
             --tag "$GHCR_IMAGE:$version" \
             --tag "$GHCR_IMAGE:latest" \
             "$source"
@@ -481,8 +468,6 @@ jobs:
 
           version="${GITHUB_REF_NAME#v}"
           refs=(
-            "$DOCKERHUB_IMAGE:$version"
-            "$DOCKERHUB_IMAGE:latest"
             "$GHCR_IMAGE:$version"
             "$GHCR_IMAGE:latest"
           )
@@ -537,22 +522,3 @@ jobs:
           mapfile -d '' assets < <(find release-evidence -type f -print0)
           [ "${#assets[@]}" -gt 0 ]
           gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
-
-  update-dockerhub-description:
-    needs: promote-candidate
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Update Docker Hub description
-        uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5.0.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: coderluii/holycode
-          short-description: "OpenCode in Docker, AI coding workstation with persistent state and curated tools"
-          readme-filepath: ./docs/dockerhub-description.md

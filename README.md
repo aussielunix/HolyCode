@@ -11,16 +11,15 @@
 <p align="center">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Docker Pulls](https://badgen.net/docker/pulls/coderluii/holycode?icon=docker)](https://hub.docker.com/r/coderluii/holycode)
-[![Full Image](https://img.shields.io/docker/image-size/coderluii/holycode/latest?label=full&color=blue&logo=docker)](https://hub.docker.com/r/coderluii/holycode)
-[![GitHub Stars](https://img.shields.io/github/stars/coderluii/holycode?style=social)](https://github.com/coderluii/holycode)
+[![GHCR Image](https://img.shields.io/badge/ghcr.io-aussielunix%2Fholycode-blue?logo=github)](https://github.com/aussielunix/HolyCode/pkgs/container/holycode)
+[![GitHub Stars](https://img.shields.io/github/stars/aussielunix/holycode?style=social)](https://github.com/aussielunix/holycode)
 [![Twitter Follow](https://img.shields.io/twitter/follow/CoderLuii?style=social)](https://x.com/CoderLuii)
 [![PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://www.paypal.com/donate/?hosted_button_id=PM2UXGVSTHDNL)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-yellow.svg?style=flat&logo=buy-me-a-coffee)](https://buymeacoffee.com/CoderLuii)
 [![Website](https://img.shields.io/badge/website-coderluii.dev-orange?logo=astro)](https://coderluii.dev)
-[![GitHub Release](https://img.shields.io/github/v/release/coderluii/holycode)](https://github.com/coderluii/holycode/releases)
-[![Issues](https://img.shields.io/github/issues/coderluii/holycode)](https://github.com/coderluii/holycode/issues)
-[![Contributors](https://img.shields.io/github/contributors/coderluii/holycode)](https://github.com/coderluii/holycode/graphs/contributors)
+[![GitHub Release](https://img.shields.io/github/v/release/aussielunix/holycode)](https://github.com/aussielunix/holycode/releases)
+[![Issues](https://img.shields.io/github/issues/aussielunix/holycode)](https://github.com/aussielunix/holycode/issues)
+[![Contributors](https://img.shields.io/github/contributors/aussielunix/holycode)](https://github.com/aussielunix/holycode/graphs/contributors)
 
 </p>
 
@@ -93,7 +92,7 @@ You pull it. You run it. You open your browser. You build.
 **Step 1.** Pull the image.
 
 ```bash
-docker pull coderluii/holycode:latest
+docker pull ghcr.io/aussielunix/holycode:latest
 ```
 
 **Step 2.** Create a `docker-compose.yaml`.
@@ -109,7 +108,7 @@ curl -fsSLo config/chromium-seccomp.json \
 ```yaml
 services:
   holycode:
-    image: coderluii/holycode:latest
+    image: ghcr.io/aussielunix/holycode:latest
     container_name: holycode
     restart: unless-stopped
     shm_size: 2g
@@ -238,7 +237,7 @@ The minimal setup. Copy, fill in your key, run.
 ```yaml
 services:
   holycode:
-    image: coderluii/holycode:latest
+    image: ghcr.io/aussielunix/holycode:latest
     container_name: holycode
     restart: unless-stopped
     shm_size: 2g              # Required for Chromium stability
@@ -271,7 +270,7 @@ Every option documented. Copy to `docker-compose.yaml` and uncomment what you ne
 
 services:
   holycode:
-    image: coderluii/holycode:latest
+    image: ghcr.io/aussielunix/holycode:latest
     container_name: holycode
     restart: unless-stopped
     shm_size: 2g
@@ -477,7 +476,7 @@ Prefer Podman? HolyCode uses the same container image there too. The Podman guid
 
 | Component | Version |
 |-----------|---------|
-| OpenCode | 1.18.32 |
+| OpenCode | 2.0.18 |
 | OpenSpec | 1.13.2; telemetry disabled, initialize a project explicitly with `openspec init --tools opencode` |
 | npm | 12.1.0 with integrity-verified `brace-expansion` 5.0.12 and `ip-address` 10.7.2 replacements |
 | PM2 | 7.0.4 with owner-guarded `js-yaml` 4.3.2 replacement |
@@ -996,7 +995,7 @@ If you are using the default HolyCode Compose files, the cache mount is `./local
 Clone the repo, build the image, swap it into your compose file.
 
 ```bash
-git clone https://github.com/coderluii/holycode.git
+git clone https://github.com/aussielunix/holycode.git
 cd holycode
 docker build -t holycode:local .
 ```
