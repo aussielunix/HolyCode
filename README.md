@@ -515,6 +515,15 @@ The dated adoption, hold, and removal decisions, plus the required release gates
 </details>
 
 <details>
+<summary><strong>v1.2.4 release pins</strong></summary>
+
+OpenCode v2 now installs as the scoped `@opencode/cli` package at 2.0.18; the legacy `opencode-ai` line is retired. This fork publishes to GitHub Container Registry only (`ghcr.io/aussielunix/holycode`), and releases may be cut from any branch or tag without requiring the `main` branch tip. All other runtime pins match the v1.2.3 set.
+
+The dated adoption, hold, and removal decisions, plus the required release gates, are in the [v1.2.4 dependency audit](docs/dependency-audit-v1.2.4.md).
+
+</details>
+
+<details>
 <summary><strong>Dev tools</strong></summary>
 
 | Tool | Purpose |

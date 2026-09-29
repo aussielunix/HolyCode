@@ -942,11 +942,11 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("chromium-sandbox", self.dockerfile)
         self.assertIn("test -u /usr/lib/chromium/chrome-sandbox", self.dockerfile)
 
-    def test_v1_2_3_uses_v1_2_2_as_its_git_predecessor(self):
-        self.assertIn("RELEASE_VERSION: v1.2.3", self.protected)
-        self.assertIn("PREVIOUS_VERSION: v1.2.2", self.protected)
+    def test_v1_2_4_uses_v1_2_3_as_its_git_predecessor(self):
+        self.assertIn("RELEASE_VERSION: v1.2.4", self.protected)
+        self.assertIn("PREVIOUS_VERSION: v1.2.3", self.protected)
         self.assertIn(
-            "coderluii/holycode:1.2.2@sha256:b3a7e4f6d71c57db2b90b90a5e5cd011117da7567369cf3de5c44a1d78e4ade6",
+            "coderluii/holycode:1.2.3@sha256:b46cf61c33f3b7556b7bc165ebfa9dabfff66753a134d832ee8ec118c6354083",
             self.protected,
         )
         self.assertIn("needs: protected-validation", self.publish)
