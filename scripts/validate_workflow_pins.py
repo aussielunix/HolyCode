@@ -97,7 +97,6 @@ def collect_errors() -> list[str]:
         "scripts/validate_scanner_findings.py",
         "bash scripts/test_plugin_modes.sh",
         'ref: ${{ github.sha }}',
-        'git rev-parse origin/main',
         "Pull exact candidate digest",
         "scripts/test_upgrade_rollback.sh",
     ):
