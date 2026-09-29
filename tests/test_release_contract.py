@@ -932,7 +932,7 @@ class ReleaseContractTests(unittest.TestCase):
 
     def test_protected_validation_uses_native_architecture_runners(self):
         self.assertIn("runs-on: ubuntu-24.04", self.publish)
-        self.assertIn("linux/amd64,linux/arm64", self.publish)
+        self.assertIn("linux/amd64", self.publish)
         self.assertIn("ghcr.io/aussielunix/holycode", self.publish)
         self.assertIn("Build and push to GHCR", self.publish)
         self.assertNotIn("workflow_dispatch", self.publish)
@@ -1286,7 +1286,7 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("password: ${{ secrets.GITHUB_TOKEN }}", self.publish)
         self.assertIn("docker/build-push-action", self.publish)
         self.assertIn("push: true", self.publish)
-        self.assertIn("platforms: linux/amd64,linux/arm64", self.publish)
+        self.assertIn("platforms: linux/amd64", self.publish)
         self.assertIn("provenance: true", self.publish)
     def test_chromium_seccomp_migration_is_documented_everywhere(self):
         profile_url = (
@@ -1320,7 +1320,6 @@ class ReleaseContractTests(unittest.TestCase):
             self.renovate_extraction,
         )
         for pin in (
-            "docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0",
             "docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1",
             "docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0",
         ):
@@ -1336,10 +1335,10 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertNotIn("Trivy", self.publish)
         self.assertNotIn("Docker Scout", self.publish)
     def test_pr_validation_covers_both_native_architectures(self):
-        self.assertIn("runner: ubuntu-24.04", self.pr_validation)
-        self.assertIn("runner: ubuntu-24.04-arm", self.pr_validation)
-        self.assertIn("platform: linux/amd64", self.pr_validation)
-        self.assertIn("platform: linux/arm64", self.pr_validation)
+        self.assertIn("runs-on: ubuntu-24.04", self.pr_validation)
+        self.assertNotIn("ubuntu-24.04-arm", self.pr_validation)
+        self.assertIn("docker build --platform linux/amd64", self.pr_validation)
+        self.assertNotIn("linux/arm64", self.pr_validation)
         self.assertIn("bash scripts/smoke_image.sh", self.pr_validation)
         self.assertIn("bash scripts/test_plugin_modes.sh", self.pr_validation)
 
@@ -1350,10 +1349,10 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("bash scripts/smoke_image.sh", self.pr_validation)
         self.assertIn("bash scripts/test_plugin_modes.sh", self.pr_validation)
     def test_scanner_cli_downloads_have_bounded_retry_and_integrity_gates(self):
-        self.assertIn("runner: ubuntu-24.04", self.pr_validation)
-        self.assertIn("runner: ubuntu-24.04-arm", self.pr_validation)
-        self.assertIn("platform: linux/amd64", self.pr_validation)
-        self.assertIn("platform: linux/arm64", self.pr_validation)
+        self.assertIn("runs-on: ubuntu-24.04", self.pr_validation)
+        self.assertNotIn("ubuntu-24.04-arm", self.pr_validation)
+        self.assertIn("docker build --platform linux/amd64", self.pr_validation)
+        self.assertNotIn("linux/arm64", self.pr_validation)
     def test_manual_scanner_failures_preserve_both_reports_before_failing(self):
         self.assertNotIn("SCOUT_GATE_OUTCOME", self.publish)
         self.assertNotIn("TRIVY_GATE_OUTCOME", self.publish)

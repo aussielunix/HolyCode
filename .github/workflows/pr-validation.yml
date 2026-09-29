@@ -52,17 +52,7 @@ jobs:
 
   build-and-smoke-test:
     needs: static-validation
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: ubuntu-24.04
-            platform: linux/amd64
-            suffix: amd64
-          - runner: ubuntu-24.04-arm
-            platform: linux/arm64
-            suffix: arm64
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
 
@@ -71,10 +61,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build image
-        run: docker build --platform "${{ matrix.platform }}" -t "holycode-pr-test:${{ matrix.suffix }}" .
+        run: docker build --platform linux/amd64 -t holycode-pr-test:amd64 .
 
       - name: Smoke test image tools and secret hygiene
-        run: bash scripts/smoke_image.sh "holycode-pr-test:${{ matrix.suffix }}"
+        run: bash scripts/smoke_image.sh holycode-pr-test:amd64
 
       - name: Validate plugin pin modes
-        run: bash scripts/test_plugin_modes.sh "holycode-pr-test:${{ matrix.suffix }}"
+        run: bash scripts/test_plugin_modes.sh holycode-pr-test:amd64

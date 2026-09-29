@@ -84,6 +84,11 @@ RUN git clone --branch "v${LAZYGIT_VERSION}" --depth 1 \
     test "$(git rev-parse HEAD)" = "${LAZYGIT_REF}" && \
     test "$(git describe --tags --exact-match HEAD)" = "v${LAZYGIT_VERSION}" && \
     export GOFLAGS=-mod=mod && \
+    for attempt in 1 2 3; do \
+      if go mod download; then break; fi; \
+      test "$attempt" -lt 3; \
+      sleep 2; \
+    done && \
     test "$(go list -m -f '{{.Version}}' golang.org/x/text)" = "v0.41.0" && \
     test "$(go list -m -f '{{.Version}}' golang.org/x/sys)" = "v0.47.0" && \
     go mod verify && \

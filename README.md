@@ -508,7 +508,7 @@ Prefer Podman? HolyCode uses the same container image there too. The Podman guid
 | opencode-claude-auth default | 2.2.1, integrity-verified and installed offline from the image; refresh issue #11 remains open |
 | oh-my-openagent | HolyCode-managed installation suspended; legacy active entry disabled once while settings, skills, and cache remain |
 
-Release assets use digests, checksums, and action SHAs for hardening. npm lifecycle scripts are installed disabled, then their exact package version, integrity, architecture, and script body are validated before the approved scripts run. Releases build both Linux amd64 and arm64 and publish to GitHub Container Registry as `ghcr.io/aussielunix/holycode` with provenance attestations. Pull requests run static checks plus a native build and smoke test. No Docker Hub, Docker Scout, or Trivy account is required.
+Release assets use digests, checksums, and action SHAs for hardening. npm lifecycle scripts are installed disabled, then their exact package version, integrity, architecture, and script body are validated before the approved scripts run. Releases build a Linux amd64 image and publish to GitHub Container Registry as `ghcr.io/aussielunix/holycode` with provenance attestations. Pull requests run static checks plus a native build and smoke test. No Docker Hub, Docker Scout, or Trivy account is required.
 
 The dated adoption, hold, and removal decisions, plus the required release gates, are in the [v1.2.3 dependency audit](docs/dependency-audit-v1.2.3.md).
 

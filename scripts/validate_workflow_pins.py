@@ -23,7 +23,6 @@ USES_RE = re.compile(r"^\s*uses:\s*([^@\s]+)@([^\s#]+)(?:\s*#\s*(\S+))?\s*$")
 REQUIRED_PINS = {
     "actions/checkout": ("3d3c42e5aac5ba805825da76410c181273ba90b1", "v7.0.1"),
     "actions/setup-node": ("820762786026740c76f36085b0efc47a31fe5020", "v7.0.0"),
-    "docker/setup-qemu-action": ("99012661954931238ded8c8b007157a8430204e1", "v4.4.0"),
     "docker/setup-buildx-action": ("f87e5991a6d7451dcb8d9637bfbc97413f497069", "v4.4.1"),
     "docker/login-action": ("dbcb813823bdd20940b903addbd779551569679f", "v4.6.0"),
     "docker/build-push-action": ("c3c9e263c25d99ce0380d002d59b67737d91b0dc", "v7.4.0"),
@@ -63,8 +62,8 @@ def collect_errors() -> list[str]:
         errors.append("docker-publish.yml must declare packages: write and contents: read permissions")
     if "ghcr.io/aussielunix/holycode" not in publish_text:
         errors.append("docker-publish.yml must publish to ghcr.io/aussielunix/holycode")
-    if "linux/amd64,linux/arm64" not in publish_text:
-        errors.append("docker-publish.yml must build both linux/amd64 and linux/arm64")
+    if "linux/amd64" not in publish_text:
+        errors.append("docker-publish.yml must build linux/amd64")
     if "provenance: true" not in publish_text:
         errors.append("docker-publish.yml must enable provenance attestations")
 

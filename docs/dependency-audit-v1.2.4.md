@@ -133,6 +133,6 @@ The release keeps the default Debian Trixie suite and does not claim byte-for-by
 
 ## Release gates
 
-On a `v*` tag, the release workflow builds the image for Linux amd64 and arm64 and publishes it to GitHub Container Registry as `ghcr.io/aussielunix/holycode:<tag>` and `:latest` with provenance attestations. Pull requests run static checks plus a native build and smoke test. There is no Docker Hub, Docker Scout, Trivy, or upgrade/rollback gate. The fork keeps `main` as a clean upstream mirror and can publish from any branch or tag.
+On a `v*` tag, the release workflow builds the Linux amd64 image and publishes it to GitHub Container Registry as `ghcr.io/aussielunix/holycode:<tag>` and `:latest` with provenance attestations. Pull requests run static checks plus a native build and smoke test. There is no Docker Hub, Docker Scout, Trivy, or upgrade/rollback gate. The fork keeps `main` as a clean upstream mirror and can publish from any branch or tag.
 
 This audit records the requested dependency set; it does not claim to be a scan or publication record.
