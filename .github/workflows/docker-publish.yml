@@ -16,9 +16,9 @@ env:
   # Previous published release baseline (upstream v1.2.2, digest-pinned). It is
   # used only to validate upgrade/rollback by pulling a public image, so it can
   # point at the upstream Docker Hub image and needs no registry credentials.
-  PREVIOUS_IMAGE: coderluii/holycode:1.2.2@sha256:b3a7e4f6d71c57db2b90b90a5e5cd011117da7567369cf3de5c44a1d78e4ade6
-  PREVIOUS_VERSION: v1.2.2
-  RELEASE_VERSION: v1.2.3
+  PREVIOUS_IMAGE: coderluii/holycode:1.2.3@sha256:b46cf61c33f3b7556b7bc165ebfa9dabfff66753a134d832ee8ec118c6354083
+  PREVIOUS_VERSION: v1.2.3
+  RELEASE_VERSION: v1.2.4
 
 # No registry secrets are required: GHCR push uses the built-in GITHUB_TOKEN,
 # and vulnerability scanning runs offline against a local SBOM.
