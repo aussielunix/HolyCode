@@ -112,7 +112,7 @@ docker run --rm -i --network none --security-opt "seccomp=$seccomp_profile" --en
   PM2_HOME=/tmp/holycode-smoke-pm2 pm2 stop holycode-smoke-pm2 >/dev/null
   PM2_HOME=/tmp/holycode-smoke-pm2 pm2 kill >/dev/null
   rm -rf /tmp/holycode-smoke-pm2 "$pm2_app"
-  opencode --version | grep -Fx "$EXPECTED_OPENCODE"
+  opencode --version | grep -F "$EXPECTED_OPENCODE"
   test -d "/package/admin/s6-overlay-$EXPECTED_S6"
   fzf --version | grep -E "^$EXPECTED_FZF([[:space:]]|$)"
   test "$(printf "alpha\nneedle-result\nomega\n" | fzf --filter=needle --select-1 --exit-0)" = "needle-result"

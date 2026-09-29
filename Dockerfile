@@ -725,7 +725,8 @@ RUN python3 /usr/local/bin/validate-npm-script-policy \
     (cd "$POSTGRES_PACKAGE" && node scripts/hydrate-symlinks.js) && \
     node -e 'const fs=require("fs"); const path=require("path"); const root=process.argv[1]; const links=JSON.parse(fs.readFileSync(path.join(root,"native/pg-symlinks.json"),"utf8")); for (const {source,target} of links) { const sourcePath=path.join(root,source); const targetPath=path.join(root,target); if (!fs.lstatSync(targetPath).isSymbolicLink() || fs.realpathSync(targetPath)!==fs.realpathSync(sourcePath)) throw new Error(`invalid PostgreSQL link: ${target}`); }' \
       "$POSTGRES_PACKAGE" && \
-    opencode --version | grep -Fx "${OPENCODE_VERSION}" && \
+    # OpenCode v2 prints "opencode v<version>"; match the version substring.
+    opencode --version | grep -F "${OPENCODE_VERSION}" && \
     claude --version | grep -F "${CLAUDE_CODE_VERSION}" && \
     esbuild --version | grep -Fx "0.28.2" && \
     prisma --version >/dev/null && \
