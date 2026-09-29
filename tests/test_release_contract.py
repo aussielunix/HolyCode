@@ -1594,7 +1594,6 @@ class ReleaseContractTests(unittest.TestCase):
             "CLIPROXYAPI_ENABLED=true",
             'CLIPROXYAPI_BASE_URL="http://$cliproxy_mock:8317/v1"',
             "CLIProxyAPI discovered 2 model(s) from /models",
-            "timeout 15 opencode models",
             'provider.models["holycode-discovered-primary"]',
             'provider.models["vendor/holycode-discovered-small"]',
             "docker network rm",

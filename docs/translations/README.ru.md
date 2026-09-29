@@ -318,7 +318,7 @@ services:
       # - OPENCODE_DISABLE_AUTOCOMPACT=true
       # - OPENCODE_ENABLE_EXA=true
 
-      # --- Web UI Security (basic auth for opencode web) ---
+      # --- Web UI Security (basic auth for opencode serve) ---
       # - OPENCODE_SERVER_PASSWORD=your-password
       # - OPENCODE_SERVER_USERNAME=opencode
 
@@ -541,7 +541,7 @@ graph TD
     E -->|No| G[s6-overlay /init]
     F --> G
     G --> H[Xvfb :99]
-    G --> I[opencode web :4096]
+    G --> I[opencode serve :4096]
     I --> J[Web UI]
     J --> K[Your Browser]
     I --> L[CLI Access]
@@ -610,7 +610,7 @@ HolyCode не устанавливает и не обновляет oh-my-openag
 | `opencode` | Запустить TUI |
 | `opencode run 'message'` | Одиночный запрос |
 | `opencode attach <url>` | Подключить TUI к работающему серверу |
-| `opencode web --port 4096` | Запустить веб-сервер (уже запущен через s6) |
+| `opencode serve --port 4096` | Запустить веб-сервер (уже запущен через s6) |
 | `opencode serve` | Безголовый API-сервер |
 | `opencode providers list` | Показать настроенных провайдеров |
 | `opencode providers login` | Добавить или сменить провайдера |

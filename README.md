@@ -327,7 +327,7 @@ services:
       # - OPENCODE_DISABLE_AUTOCOMPACT=true
       # - OPENCODE_ENABLE_EXA=true
 
-      # --- Web UI Security (basic auth for opencode web) ---
+      # --- Web UI Security (basic auth for opencode serve) ---
       # - OPENCODE_SERVER_PASSWORD=your-password
       # - OPENCODE_SERVER_USERNAME=opencode
 
@@ -674,7 +674,7 @@ graph TD
     E -->|No| G[s6-overlay /init]
     F --> G
     G --> H[Xvfb :99]
-    G --> I[opencode web :4096]
+    G --> I[opencode serve :4096]
     G --> R[Paperclip UI :3100]
     V[External CLIProxyAPI endpoint] --> U[cliproxyapi provider]
     I --> J[Web UI]
@@ -743,7 +743,7 @@ docker exec -it holycode bash -c "opencode providers login"
 | `opencode` | Launch the TUI |
 | `opencode run 'message'` | One-shot prompt |
 | `opencode attach <url>` | Attach TUI to running server |
-| `opencode web --port 4096` | Start web server (already running via s6) |
+| `opencode serve --port 4096` | Start web server (already running via s6) |
 | `opencode serve` | Headless API server |
 | `opencode providers list` | Show configured providers |
 | `opencode providers login` | Add or switch provider |

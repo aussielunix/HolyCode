@@ -318,7 +318,7 @@ services:
       # - OPENCODE_DISABLE_AUTOCOMPACT=true
       # - OPENCODE_ENABLE_EXA=true
 
-      # --- Web UI Security (basic auth for opencode web) ---
+      # --- Web UI Security (basic auth for opencode serve) ---
       # - OPENCODE_SERVER_PASSWORD=your-password
       # - OPENCODE_SERVER_USERNAME=opencode
 
@@ -541,7 +541,7 @@ graph TD
     E -->|No| G[s6-overlay /init]
     F --> G
     G --> H[Xvfb :99]
-    G --> I[opencode web :4096]
+    G --> I[opencode serve :4096]
     I --> J[Web UI]
     J --> K[Your Browser]
     I --> L[CLI Access]
@@ -610,7 +610,7 @@ HolyCode는 v1.1.4에서 oh-my-openagent를 설치하거나 업데이트하지 �
 | `opencode` | TUI 실행 |
 | `opencode run 'message'` | 원샷 프롬프트 |
 | `opencode attach <url>` | 실행 중인 서버에 TUI 연결 |
-| `opencode web --port 4096` | 웹 서버 시작 (이미 s6를 통해 실행 중) |
+| `opencode serve --port 4096` | 웹 서버 시작 (이미 s6를 통해 실행 중) |
 | `opencode serve` | 헤드리스 API 서버 |
 | `opencode providers list` | 설정된 프로바이더 표시 |
 | `opencode providers login` | 프로바이더 추가 또는 전환 |

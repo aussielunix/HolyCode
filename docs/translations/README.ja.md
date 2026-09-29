@@ -318,7 +318,7 @@ services:
       # - OPENCODE_DISABLE_AUTOCOMPACT=true
       # - OPENCODE_ENABLE_EXA=true
 
-      # --- Web UI Security (basic auth for opencode web) ---
+      # --- Web UI Security (basic auth for opencode serve) ---
       # - OPENCODE_SERVER_PASSWORD=your-password
       # - OPENCODE_SERVER_USERNAME=opencode
 
@@ -541,7 +541,7 @@ graph TD
     E -->|No| G[s6-overlay /init]
     F --> G
     G --> H[Xvfb :99]
-    G --> I[opencode web :4096]
+    G --> I[opencode serve :4096]
     I --> J[Web UI]
     J --> K[Your Browser]
     I --> L[CLI Access]
@@ -610,7 +610,7 @@ HolyCode は v1.1.4 で oh-my-openagent のインストールや更新を行い�
 | `opencode` | TUI を起動 |
 | `opencode run 'message'` | ワンショットプロンプト |
 | `opencode attach <url>` | 実行中のサーバーに TUI をアタッチ |
-| `opencode web --port 4096` | Web サーバーを起動（s6 経由で既に実行中） |
+| `opencode serve --port 4096` | Web サーバーを起動（s6 経由で既に実行中） |
 | `opencode serve` | ヘッドレス API サーバー |
 | `opencode providers list` | 設定済みプロバイダーを表示 |
 | `opencode providers login` | プロバイダーを追加または切り替え |

@@ -318,7 +318,7 @@ services:
       # - OPENCODE_DISABLE_AUTOCOMPACT=true
       # - OPENCODE_ENABLE_EXA=true
 
-      # --- Web UI Security (basic auth for opencode web) ---
+      # --- Web UI Security (basic auth for opencode serve) ---
       # - OPENCODE_SERVER_PASSWORD=your-password
       # - OPENCODE_SERVER_USERNAME=opencode
 
@@ -541,7 +541,7 @@ graph TD
     E -->|No| G[s6-overlay /init]
     F --> G
     G --> H[Xvfb :99]
-    G --> I[opencode web :4096]
+    G --> I[opencode serve :4096]
     I --> J[Web UI]
     J --> K[Your Browser]
     I --> L[CLI Access]
@@ -610,7 +610,7 @@ HolyCode 不会在 v1.1.4 中安装或更新 oh-my-openagent。设置 `ENABLE_OH
 | `opencode` | 启动 TUI |
 | `opencode run 'message'` | 一次性提示 |
 | `opencode attach <url>` | 将 TUI 连接到运行中的服务器 |
-| `opencode web --port 4096` | 启动 Web 服务器（已通过 s6 运行） |
+| `opencode serve --port 4096` | 启动 Web 服务器（已通过 s6 运行） |
 | `opencode serve` | 无头 API 服务器 |
 | `opencode providers list` | 显示已配置的提供商 |
 | `opencode providers login` | 添加或切换提供商 |

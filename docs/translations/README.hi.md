@@ -318,7 +318,7 @@ services:
       # - OPENCODE_DISABLE_AUTOCOMPACT=true
       # - OPENCODE_ENABLE_EXA=true
 
-      # --- Web UI Security (basic auth for opencode web) ---
+      # --- Web UI Security (basic auth for opencode serve) ---
       # - OPENCODE_SERVER_PASSWORD=your-password
       # - OPENCODE_SERVER_USERNAME=opencode
 
@@ -541,7 +541,7 @@ graph TD
     E -->|No| G[s6-overlay /init]
     F --> G
     G --> H[Xvfb :99]
-    G --> I[opencode web :4096]
+    G --> I[opencode serve :4096]
     I --> J[Web UI]
     J --> K[Your Browser]
     I --> L[CLI Access]
@@ -610,7 +610,7 @@ HolyCode v1.1.4 में oh-my-openagent इंस्टॉल या अपड
 | `opencode` | TUI लॉन्च करें |
 | `opencode run 'message'` | वन-शॉट प्रॉम्प्ट |
 | `opencode attach <url>` | चल रहे सर्वर से TUI कनेक्ट करें |
-| `opencode web --port 4096` | वेब सर्वर शुरू करें (s6 के ज़रिए पहले से चल रहा) |
+| `opencode serve --port 4096` | वेब सर्वर शुरू करें (s6 के ज़रिए पहले से चल रहा) |
 | `opencode serve` | हेडलेस API सर्वर |
 | `opencode providers list` | कॉन्फ़िगर्ड प्रोवाइडर दिखाएं |
 | `opencode providers login` | प्रोवाइडर जोड़ें या बदलें |

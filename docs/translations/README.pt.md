@@ -318,7 +318,7 @@ services:
       # - OPENCODE_DISABLE_AUTOCOMPACT=true
       # - OPENCODE_ENABLE_EXA=true
 
-      # --- Web UI Security (basic auth for opencode web) ---
+      # --- Web UI Security (basic auth for opencode serve) ---
       # - OPENCODE_SERVER_PASSWORD=your-password
       # - OPENCODE_SERVER_USERNAME=opencode
 
@@ -541,7 +541,7 @@ graph TD
     E -->|No| G[s6-overlay /init]
     F --> G
     G --> H[Xvfb :99]
-    G --> I[opencode web :4096]
+    G --> I[opencode serve :4096]
     I --> J[Web UI]
     J --> K[Your Browser]
     I --> L[CLI Access]
@@ -610,7 +610,7 @@ O HolyCode não instala nem atualiza o oh-my-openagent na v1.1.4. Com `ENABLE_OH
 | `opencode` | Inicia o TUI |
 | `opencode run 'message'` | Prompt pontual |
 | `opencode attach <url>` | Conecta TUI ao servidor em execução |
-| `opencode web --port 4096` | Inicia o servidor web (já em execução via s6) |
+| `opencode serve --port 4096` | Inicia o servidor web (já em execução via s6) |
 | `opencode serve` | Servidor API headless |
 | `opencode providers list` | Mostra provedores configurados |
 | `opencode providers login` | Adiciona ou troca de provedor |

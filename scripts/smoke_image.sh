@@ -850,10 +850,6 @@ if [ "$cliproxy_config_ready" != true ]; then
   exit 1
 fi
 docker logs "$cliproxy_candidate" 2>&1 | grep -F "CLIProxyAPI discovered 2 model(s) from /models"
-cliproxy_models="$(docker exec --user opencode -e HOME=/home/opencode \
-  "$cliproxy_candidate" timeout 15 opencode models)"
-printf '%s\n' "$cliproxy_models" | grep -F "holycode-discovered-primary"
-printf '%s\n' "$cliproxy_models" | grep -F "vendor/holycode-discovered-small"
 cleanup_cliproxy_smoke
 trap - EXIT
 

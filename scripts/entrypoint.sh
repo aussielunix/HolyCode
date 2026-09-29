@@ -14,6 +14,11 @@ CLAUDE_AUTH_PLUGIN_NAME="opencode-claude-auth"
 CLAUDE_AUTH_PLUGIN_VERSION="2.2.1"
 CLAUDE_AUTH_PLUGIN_SOURCE="/usr/local/share/holycode/plugins/opencode-claude-auth"
 
+# opencode v2 (`opencode serve`) authenticates API clients with OPENCODE_PASSWORD.
+# Honour the documented HolyCode web-auth variable so a user-specified password is
+# used by the server and any CLI client; otherwise let opencode generate one.
+export OPENCODE_PASSWORD="${OPENCODE_PASSWORD:-${OPENCODE_SERVER_PASSWORD:-}}"
+
 sync_shipped_skills() {
     local source_skills_dir="/usr/local/share/holycode/skills"
     local target_skills_dir="$OC_HOME/.config/opencode/skills"
