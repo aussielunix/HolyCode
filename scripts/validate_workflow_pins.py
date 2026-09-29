@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Validate immutable action pins and release-workflow guardrails."""
+"""Validate immutable action pins and release-workflow guardrails.
+
+The release workflow is intentionally minimal: it builds the multi-architecture
+image and publishes it to GitHub Container Registry. This validator only enforces
+that every external action is pinned by commit and that the minimal release and
+pull-request workflows remain well-formed. There is no Docker Hub, Docker Scout,
+Trivy, or registry-account dependency.
+"""
 
 from __future__ import annotations
 
@@ -16,12 +23,10 @@ USES_RE = re.compile(r"^\s*uses:\s*([^@\s]+)@([^\s#]+)(?:\s*#\s*(\S+))?\s*$")
 REQUIRED_PINS = {
     "actions/checkout": ("3d3c42e5aac5ba805825da76410c181273ba90b1", "v7.0.1"),
     "actions/setup-node": ("820762786026740c76f36085b0efc47a31fe5020", "v7.0.0"),
-    "actions/upload-artifact": ("043fb46d1a93c77aae656e7c1c64a875d1fc6a0a", "v7.0.1"),
     "docker/setup-qemu-action": ("99012661954931238ded8c8b007157a8430204e1", "v4.4.0"),
     "docker/setup-buildx-action": ("f87e5991a6d7451dcb8d9637bfbc97413f497069", "v4.4.1"),
     "docker/login-action": ("dbcb813823bdd20940b903addbd779551569679f", "v4.6.0"),
     "docker/build-push-action": ("c3c9e263c25d99ce0380d002d59b67737d91b0dc", "v7.4.0"),
-    "aquasecurity/trivy-action": ("ed142fd0673e97e23eac54620cfb913e5ce36c25", "v0.36.0"),
 }
 
 
@@ -48,139 +53,36 @@ def collect_errors() -> list[str]:
                 if version_comment != expected_version:
                     errors.append(f"{location} must keep comment '# {expected_version}'")
 
-    docker_publish = WORKFLOWS / "docker-publish.yml"
-    publish_text = docker_publish.read_text(encoding="utf-8")
-    if "workflow_dispatch:" in publish_text:
-        errors.append("docker-publish.yml must not expose workflow_dispatch; manual runs can overwrite latest")
-    if "GHCR_TOKEN" in publish_text:
-        errors.append("docker-publish.yml must use secrets.GITHUB_TOKEN for GHCR, not a separate GHCR_TOKEN")
-    if "packages: write" not in publish_text or "contents: read" not in publish_text:
-        errors.append("docker-publish.yml must declare minimal contents/packages permissions")
-
-    missing_required = {
-        action
-        for action in (
-            "actions/checkout",
-            "actions/setup-node",
-            "actions/upload-artifact",
-            "docker/setup-qemu-action",
-            "docker/setup-buildx-action",
-            "docker/login-action",
-            "docker/build-push-action",
-            "aquasecurity/trivy-action",
-        )
-        if action not in seen
-    }
-    for action in sorted(missing_required):
+    missing = sorted(set(REQUIRED_PINS) - seen)
+    for action in missing:
         errors.append(f"required pinned action is not present: {action}")
 
-    protected_text = publish_text
-    for required_text in (
-        "runner: ubuntu-24.04",
-        "runner: ubuntu-24.04-arm",
-        "SCOUT_VERSION: 1.24.0",
-        "scout_sha256: f4e2814bd61040365153d5b964b144cb2dc6ee536a68b5bac4cadf00fc0ec34b",
-        "scout_sha256: 8b21594c72d4d9403a82a49e9dbdfc04c27c6a21933906f1eefbb0beabe22d58",
-        "trivy_sha256: 2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
-        "trivy_sha256: b94ce1976bbf3c15b514b605ee88be7c6d94a29be2302847ff01cb794d47aad5",
-        "docker/scout-cli/releases/download/v${SCOUT_VERSION}",
-        "aquasecurity/trivy/releases/download/v${TRIVY_VERSION}",
-        'docker-scout cves "sbom://$SCOUT_SBOM"',
-        "version: v0.74.0",
-        "PREVIOUS_IMAGE: coderluii/holycode:1.2.3@sha256:b46cf61c33f3b7556b7bc165ebfa9dabfff66753a134d832ee8ec118c6354083",
-        "PREVIOUS_VERSION: v1.2.3",
-        "RELEASE_VERSION: v1.2.4",
+    publish = WORKFLOWS / "docker-publish.yml"
+    publish_text = publish.read_text(encoding="utf-8")
+    if "packages: write" not in publish_text or "contents: read" not in publish_text:
+        errors.append("docker-publish.yml must declare packages: write and contents: read permissions")
+    if "ghcr.io/aussielunix/holycode" not in publish_text:
+        errors.append("docker-publish.yml must publish to ghcr.io/aussielunix/holycode")
+    if "linux/amd64,linux/arm64" not in publish_text:
+        errors.append("docker-publish.yml must build both linux/amd64 and linux/arm64")
+    if "provenance: true" not in publish_text:
+        errors.append("docker-publish.yml must enable provenance attestations")
+
+    pr_validation = WORKFLOWS / "pr-validation.yml"
+    pr_text = pr_validation.read_text(encoding="utf-8")
+    for required in (
+        "node-version: 24.21.0",
         "python -m unittest discover -s tests",
         "python scripts/validate_workflow_pins.py",
         "python scripts/validate_chromium_seccomp.py",
         "bash scripts/validate_renovate_extraction.sh 44.112.3",
-        "scripts/validate_scanner_findings.py",
-        "bash scripts/test_plugin_modes.sh",
-        'ref: ${{ github.sha }}',
-        "Pull exact candidate digest",
-        "scripts/test_upgrade_rollback.sh",
-    ):
-        if required_text not in protected_text:
-            errors.append(f"docker-publish.yml must contain {required_text!r}")
-    if protected_text.count("scanners: vuln,secret") != 2:
-        errors.append("docker-publish.yml must run both Trivy gates with vuln and secret scanners")
-    if protected_text.count("skip-setup-trivy: true") != 3:
-        errors.append("docker-publish.yml must use the integrity-bound Trivy installation")
-    if "trivyignores:" in protected_text:
-        errors.append("docker-publish.yml must not bypass the fixable critical/high gate")
-    if "eceasy/cli-proxy-api" in protected_text:
-        errors.append("docker-publish.yml must not pull the removed CLIProxyAPI sidecar")
-    if "config/security-exceptions-v1.1.4.json" in protected_text:
-        errors.append("docker-publish.yml must not reuse the historical v1.1.4 exceptions")
-
-    pr_validation = WORKFLOWS / "pr-validation.yml"
-    pr_text = pr_validation.read_text(encoding="utf-8")
-    for required_text in (
-        "workflow_dispatch:",
-        "if: github.event_name == 'workflow_dispatch'",
-        "test \"$GITHUB_REF\" = 'refs/heads/main'",
-        "runner: ubuntu-24.04",
-        "runner: ubuntu-24.04-arm",
-        "platform: linux/amd64",
-        "platform: linux/arm64",
         "bash scripts/smoke_image.sh",
         "bash scripts/test_plugin_modes.sh",
-        "scout_arch: amd64",
-        "scout_arch: arm64",
-        "scout_sha256: f4e2814bd61040365153d5b964b144cb2dc6ee536a68b5bac4cadf00fc0ec34b",
-        "scout_sha256: 8b21594c72d4d9403a82a49e9dbdfc04c27c6a21933906f1eefbb0beabe22d58",
-        "trivy_sha256: 2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
-        "trivy_sha256: b94ce1976bbf3c15b514b605ee88be7c6d94a29be2302847ff01cb794d47aad5",
-        "SCOUT_VERSION: 1.24.0",
-        "TRIVY_VERSION: 0.74.0",
-        "aquasecurity/trivy/releases/download/v${TRIVY_VERSION}",
-        'docker-scout cves "sbom://$SCOUT_SBOM"',
-        "--scanner scout",
-        "--scanner trivy",
-        "version: v0.74.0",
-        "ignore-unfixed: true",
-        "holycode-pretag-${{ github.sha }}-${{ matrix.suffix }}-evidence",
-        "holycode-${{ matrix.suffix }}.commit-sha.txt",
-        "holycode-${{ matrix.suffix }}.dpkg-inventory.txt",
-        "holycode-${{ matrix.suffix }}.image-id.txt",
-        "holycode-${{ matrix.suffix }}.scout-fixable.sarif",
-        "holycode-${{ matrix.suffix }}.trivy-fixable.json",
-        "SCOUT_GATE_OUTCOME: ${{ steps.scout_gate.outcome }}",
-        "TRIVY_GATE_OUTCOME: ${{ steps.trivy_gate.outcome }}",
-        'test "$SCOUT_GATE_OUTCOME" = "success"',
-        'test "$TRIVY_GATE_OUTCOME" = "success"',
     ):
-        if required_text not in pr_text:
-            errors.append(f"pr-validation.yml must contain {required_text!r}")
-    if "github.event_name == 'pull_request' || github.ref" in pr_text:
-        errors.append("pr-validation.yml must fail rejected manual refs, not skip every job")
-    if "bash scripts/validate_renovate_extraction.sh 44.112.3" not in pr_text:
-        errors.append("pr-validation.yml must validate Renovate extraction with the audited pin")
-    if pr_text.count("scanners: vuln,secret") != 2:
-        errors.append("manual pre-tag validation must run both Trivy gates with vuln and secret scanners")
-    if pr_text.count("skip-setup-trivy: true") != 3:
-        errors.append("manual pre-tag validation must use the integrity-bound Trivy installation")
-    manual_steps = (
-        "Install Trivy CLI",
-        "Generate pre-tag SPDX SBOM for Docker Scout",
-        "Install Docker Scout CLI for pre-tag validation",
-        "Generate pre-tag Docker Scout vulnerability reports",
-        "Docker Scout pre-tag fixable critical and high gate",
-        "Generate pre-tag Trivy vulnerability report",
-        "Trivy pre-tag fixable critical and high gate",
-        "Validate pre-tag Trivy fixable critical and high findings",
-        "Collect pre-tag architecture evidence",
-        "Upload pre-tag architecture evidence",
-        "Enforce pre-tag scanner gates",
-    )
-    for step_name in manual_steps:
-        condition = re.compile(
-            rf"- name: {re.escape(step_name)}\n"
-            rf"(?:\s+id: [^\n]+\n)?"
-            rf"\s+if: (?:always\(\) && )?github\.event_name == 'workflow_dispatch'"
-        )
-        if not condition.search(pr_text):
-            errors.append(f"pr-validation.yml must limit {step_name!r} to manual runs")
+        if required not in pr_text:
+            errors.append(f"pr-validation.yml must contain {required!r}")
+    if "scout_sha256" in pr_text or "trivy_sha256" in pr_text:
+        errors.append("pr-validation.yml must not require Docker Scout or Trivy")
 
     return errors
 

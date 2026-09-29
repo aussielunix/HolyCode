@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ### Changed
 
 - Migrate OpenCode to v2 as the scoped `@opencode/cli` package (2.0.18); the legacy `opencode-ai` line is retired
-- Move the protected release predecessor and rollback image from v1.2.2 to v1.2.3
+- Simplify the release workflow to build the multi-architecture image and publish it directly to GitHub Container Registry, dropping the Docker Hub, Docker Scout, Trivy, and upgrade/rollback release gates
 - Publish the container to GitHub Container Registry only (`ghcr.io/aussielunix/holycode`) and drop the Docker Hub release aliases
 - Decouple releases from the `main` branch tip so a fork can bake and publish from any branch or tag while keeping `main` as a clean upstream mirror
 

@@ -11,18 +11,20 @@ class ReleaseMetadataTests(unittest.TestCase):
     def test_workflow_validator_accepts_current_release_metadata(self):
         self.assertEqual([], collect_errors())
 
-    def test_previous_image_and_version_match_released_baseline(self):
+    def test_release_image_target_and_permissions_are_exact(self):
         publish = (ROOT / ".github/workflows/docker-publish.yml").read_text()
-        self.assertIn("PREVIOUS_VERSION: v1.2.3", publish)
-        self.assertIn("RELEASE_VERSION: v1.2.4", publish)
-        self.assertIn(
-            "PREVIOUS_IMAGE: coderluii/holycode:1.2.3@sha256:"
-            "b46cf61c33f3b7556b7bc165ebfa9dabfff66753a134d832ee8ec118c6354083",
-            publish,
-        )
+        self.assertIn("GHCR_IMAGE: ghcr.io/aussielunix/holycode", publish)
+        self.assertIn("packages: write", publish)
+        self.assertIn("contents: read", publish)
+        # The published version is derived from the pushed tag; no manual
+        # version bump is required.
+        self.assertIn("${{ env.GHCR_IMAGE }}:${{ github.ref_name }}", publish)
+        self.assertIn("provenance: true", publish)
+        self.assertNotIn("coderluii/holycode", publish)
+        self.assertNotIn("dockerhub", publish.lower())
 
     def test_validation_runtime_and_renovate_are_synchronized(self):
-        for name in ("pr-validation.yml", "docker-publish.yml"):
+        for name in ("pr-validation.yml",):
             with self.subTest(workflow=name):
                 workflow = (ROOT / ".github/workflows" / name).read_text()
                 self.assertIn("node-version: 24.21.0", workflow)

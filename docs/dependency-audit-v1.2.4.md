@@ -2,9 +2,9 @@
 
 Date: 09/29/2026
 
-Git predecessor `v1.2.3` is the supported release baseline. Upgrade and rollback validation uses `coderluii/holycode:1.2.3@sha256:b46cf61c33f3b7556b7bc165ebfa9dabfff66753a134d832ee8ec118c6354083`.
+The previous upstream release baseline is `v1.2.3` (`coderluii/holycode:1.2.3@sha256:b46cf61c33f3b7556b7bc165ebfa9dabfff66753a134d832ee8ec118c6354083`).
 
-This fork publishes to GitHub Container Registry only (`ghcr.io/aussielunix/holycode`); Docker Hub is no longer a release alias. This audit records the selected v1.2.4 source graph. It is not a publication record. The notice-bound candidate still needs final native AMD64 and ARM64 builds, installed-notice equality, complete runtime/plugin and upgrade/rollback checks, per-platform SBOM and provenance, scanners, artifact checksums, and registry alias verification for the exact release digest.
+This fork publishes to GitHub Container Registry only (`ghcr.io/aussielunix/holycode`); Docker Hub is no longer a release alias. This audit records the selected v1.2.4 source graph. It is a dependency reference only; the image is built for Linux amd64 and arm64 and published to GHCR on tag push.
 
 ## Selected updates
 
@@ -129,16 +129,10 @@ Renovate 44.112.3 is CI-only and is not listed as a redistributed runtime compon
 
 ## Security and CI signals
 
-Local source tests and policy validators are necessary candidate checks, not native release proof. Final notice-bound AMD64 and ARM64 scans, advisory review, and fixable High/Critical policy replay remain release gates. The release keeps the default Debian Trixie suite, adds no scanner exception, and does not claim zero vulnerabilities.
+The release keeps the default Debian Trixie suite and does not claim byte-for-byte reproducibility or zero vulnerabilities. Pull requests run the unit and policy validators plus a native build and smoke test.
 
-## Release gates still pending
+## Release gates
 
-Publication requires all of the following on the exact notice-bound candidate:
+On a `v*` tag, the release workflow builds the image for Linux amd64 and arm64 and publishes it to GitHub Container Registry as `ghcr.io/aussielunix/holycode:<tag>` and `:latest` with provenance attestations. Pull requests run static checks plus a native build and smoke test. There is no Docker Hub, Docker Scout, Trivy, or upgrade/rollback gate. The fork keeps `main` as a clean upstream mirror and can publish from any branch or tag.
 
-1. Native AMD64 and native ARM64 build and complete smoke execution, including CLIProxyAPI model discovery and system Chromium with Playwright 1.63.0.
-2. Runtime/plugin modes and exact v1.2.3 upgrade, restart, untouched-volume rollback, listener, and outbound/provider activation checks.
-3. Installed inventory and `THIRD-PARTY-NOTICES` equality on both architectures.
-4. Per-platform SBOM, provenance/attestations, Trivy and Docker Scout reports, policy replay, and release-asset checksums.
-5. A tagged `v1.2.4` release built from the exact tag commit (no main-only or single-commit gate), followed by exact GHCR alias and digest verification. The fork keeps `main` as a clean upstream mirror and may publish from any branch or tag.
-
-Any image-affecting or notice-affecting edit invalidates earlier candidate evidence. This audit does not claim the release has shipped.
+This audit records the requested dependency set; it does not claim to be a scan or publication record.

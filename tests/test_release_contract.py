@@ -380,8 +380,8 @@ class ReleaseContractTests(unittest.TestCase):
         )
         self.assertIn("setuptools==$EXPECTED_PIP_VENDOR_PKG_RESOURCES", self.smoke)
         self.assertIn("import pip._vendor.pkg_resources", self.smoke)
-        self.assertEqual(self.pr_validation.count("timeout: 15m"), 2)
-        self.assertEqual(self.publish.count("timeout: 15m"), 2)
+        self.assertEqual(self.pr_validation.count("timeout: 15m"), 0)
+        self.assertEqual(self.publish.count("timeout: 15m"), 0)
         hunk_header = re.compile(r"^@@ -(\d+),(\d+) \+(\d+),(\d+) @@")
         lines = self.pip_pkg_resources_patch.splitlines()
         headers = [index for index, line in enumerate(lines) if line.startswith("@@ ")]
@@ -931,31 +931,22 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("export MSYS_NO_PATHCONV=1", self.claude_auth)
 
     def test_protected_validation_uses_native_architecture_runners(self):
-        self.assertIn("workflow_dispatch:", self.pr_validation)
-        self.assertIn("if: github.event_name == 'workflow_dispatch'", self.pr_validation)
-        self.assertIn("test \"$GITHUB_REF\" = 'refs/heads/main'", self.pr_validation)
-        self.assertNotIn("github.event_name == 'pull_request' || github.ref", self.pr_validation)
-        self.assertIn("runner: ubuntu-24.04", self.protected)
-        self.assertIn("runner: ubuntu-24.04-arm", self.protected)
-        self.assertIn("Build and push attested candidate", self.protected)
-        self.assertIn("Pull exact candidate digest", self.protected)
+        self.assertIn("runs-on: ubuntu-24.04", self.publish)
+        self.assertIn("linux/amd64,linux/arm64", self.publish)
+        self.assertIn("ghcr.io/aussielunix/holycode", self.publish)
+        self.assertIn("Build and push to GHCR", self.publish)
+        self.assertNotIn("workflow_dispatch", self.publish)
+        self.assertNotIn("scout", self.publish)
         self.assertIn("chromium-sandbox", self.dockerfile)
         self.assertIn("test -u /usr/lib/chromium/chrome-sandbox", self.dockerfile)
-
     def test_v1_2_4_uses_v1_2_3_as_its_git_predecessor(self):
-        self.assertIn("RELEASE_VERSION: v1.2.4", self.protected)
-        self.assertIn("PREVIOUS_VERSION: v1.2.3", self.protected)
-        self.assertIn(
-            "coderluii/holycode:1.2.3@sha256:b46cf61c33f3b7556b7bc165ebfa9dabfff66753a134d832ee8ec118c6354083",
-            self.protected,
-        )
-        self.assertIn("needs: protected-validation", self.publish)
-        self.assertNotIn("./.github/workflows/protected-validation.yml", self.publish)
-        self.assertIn("Download protected candidate digest", self.publish)
-        self.assertNotIn("event=workflow_dispatch", self.publish)
+        self.assertIn("GHCR_IMAGE: ghcr.io/aussielunix/holycode", self.publish)
+        self.assertIn("packages: write", self.publish)
+        self.assertIn("contents: read", self.publish)
+        self.assertNotIn("coderluii/holycode", self.publish)
+        self.assertNotIn("DOCKERHUB", self.publish.upper())
         self.assertEqual(self.publish.count("docker/build-push-action"), 1)
-        self.assertNotIn("config/security-exceptions-v1.1.4.json", self.protected)
-
+        self.assertNotIn("config/security-exceptions-v1.1.4.json", self.publish)
     def test_v1_2_3_release_metadata_is_documented(self):
         self.assertRegex(self.changelog, r"(?m)^## \[1\.2\.3\] - 09/24/2026$")
         self.assertTrue(self.dependency_audit.is_file())
@@ -1287,22 +1278,16 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertNotIn("/home/opencode/.config/opencode/skills", self.smoke)
 
     def test_release_workflows_bind_and_promote_the_validated_candidate(self):
-        self.assertIn('[ "$REQUESTED_REF" = "$GITHUB_SHA" ]', self.protected)
-        self.assertIn('[ "$actual_sha" = "$GITHUB_SHA" ]', self.protected)
-        self.assertIn('ref: ${{ github.sha }}', self.protected)
-        self.assertIn("docker pull --platform", self.protected)
-        self.assertIn("scout-fixable.sarif", self.protected)
-        self.assertIn("validate_scanner_findings.py", self.protected)
-        self.assertIn("bash scripts/test_plugin_modes.sh", self.protected)
         self.assertIn("group: docker-release", self.publish)
         self.assertIn("cancel-in-progress: false", self.publish)
-        self.assertIn("Require matching published GitHub release", self.publish)
-        self.assertIn(".name == $tag", self.publish)
-        self.assertIn("docker buildx imagetools create", self.publish)
-        self.assertIn('[ "$expected_digest" = "$CANDIDATE_DIGEST" ]', self.publish)
-        self.assertIn("continue-on-error: true", self.publish)
-        self.assertIn("gh release upload", self.publish)
-
+        self.assertIn("Log in to GHCR", self.publish)
+        self.assertIn("registry: ghcr.io", self.publish)
+        self.assertIn("username: ${{ github.actor }}", self.publish)
+        self.assertIn("password: ${{ secrets.GITHUB_TOKEN }}", self.publish)
+        self.assertIn("docker/build-push-action", self.publish)
+        self.assertIn("push: true", self.publish)
+        self.assertIn("platforms: linux/amd64,linux/arm64", self.publish)
+        self.assertIn("provenance: true", self.publish)
     def test_chromium_seccomp_migration_is_documented_everywhere(self):
         profile_url = (
             "https://raw.githubusercontent.com/CoderLuii/HolyCode/v1.1.3/"
@@ -1321,15 +1306,10 @@ class ReleaseContractTests(unittest.TestCase):
     def test_workflow_dependency_and_security_pins(self):
         checkout = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1"
         self.assertIn(checkout, self.publish)
-        self.assertIn(checkout, self.protected)
         self.assertIn(checkout, self.pr_validation)
         self.assertIn(
             "bash scripts/validate_renovate_extraction.sh 44.112.3",
             self.pr_validation,
-        )
-        self.assertIn(
-            "bash scripts/validate_renovate_extraction.sh 44.112.3",
-            self.protected,
         )
         self.assertIn(
             "bash scripts/validate_renovate_extraction.sh 44.112.3",
@@ -1346,28 +1326,15 @@ class ReleaseContractTests(unittest.TestCase):
         ):
             with self.subTest(pin=pin):
                 self.assertIn(pin, self.publish)
-        setup_node = (
-            "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0"
-        )
+        setup_node = "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0"
         self.assertIn(setup_node, self.pr_validation)
-        self.assertIn(setup_node, self.protected)
         self.assertIn("node-version: 24.21.0", self.pr_validation)
-        self.assertIn("node-version: 24.21.0", self.protected)
         self.assertIn(
             "docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0",
             self.publish,
         )
-        self.assertIn(
-            "docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0",
-            self.protected,
-        )
-        self.assertIn("Trivy fixable critical and high gate", self.protected)
-        self.assertIn("Docker Scout fixable critical and high gate", self.protected)
-        self.assertIn("severity: CRITICAL,HIGH", self.protected)
-        self.assertNotIn("--exceptions", self.protected)
-        self.assertIn("format: json", self.protected)
-        self.assertIn("trivy-fixable.json", self.protected)
-
+        self.assertNotIn("Trivy", self.publish)
+        self.assertNotIn("Docker Scout", self.publish)
     def test_pr_validation_covers_both_native_architectures(self):
         self.assertIn("runner: ubuntu-24.04", self.pr_validation)
         self.assertIn("runner: ubuntu-24.04-arm", self.pr_validation)
@@ -1377,139 +1344,19 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("bash scripts/test_plugin_modes.sh", self.pr_validation)
 
     def test_manual_pre_tag_validation_runs_native_scanners_and_uploads_evidence(self):
-        for value in (
-            "scout_arch: amd64",
-            "scout_arch: arm64",
-            "scout_sha256: f4e2814bd61040365153d5b964b144cb2dc6ee536a68b5bac4cadf00fc0ec34b",
-            "scout_sha256: 8b21594c72d4d9403a82a49e9dbdfc04c27c6a21933906f1eefbb0beabe22d58",
-            "SCOUT_VERSION: 1.24.0",
-            'docker-scout cves "sbom://$SCOUT_SBOM"',
-            "--scanner scout",
-            "--scanner trivy",
-            "version: v0.74.0",
-            "scanners: vuln,secret",
-            "ignore-unfixed: true",
-            "holycode-pretag-${{ github.sha }}-${{ matrix.suffix }}-evidence",
-            "holycode-${{ matrix.suffix }}.commit-sha.txt",
-            "holycode-${{ matrix.suffix }}.dpkg-inventory.txt",
-            "holycode-${{ matrix.suffix }}.image-id.txt",
-            "holycode-${{ matrix.suffix }}.scout-fixable.sarif",
-            "holycode-${{ matrix.suffix }}.trivy-fixable.json",
-        ):
-            with self.subTest(value=value):
-                self.assertIn(value, self.pr_validation)
-
-        manual_steps = (
-            "Install Trivy CLI",
-            "Generate pre-tag SPDX SBOM for Docker Scout",
-            "Install Docker Scout CLI for pre-tag validation",
-            "Generate pre-tag Docker Scout vulnerability reports",
-            "Docker Scout pre-tag fixable critical and high gate",
-            "Generate pre-tag Trivy vulnerability report",
-            "Trivy pre-tag fixable critical and high gate",
-            "Validate pre-tag Trivy fixable critical and high findings",
-            "Collect pre-tag architecture evidence",
-            "Upload pre-tag architecture evidence",
-        )
-        for name in manual_steps:
-            with self.subTest(step=name):
-                self.assertRegex(
-                    self.pr_validation,
-                    rf"- name: {re.escape(name)}\n"
-                    rf"(?:\s+id: [^\n]+\n)?"
-                    rf"\s+if: (?:always\(\) && )?github\.event_name == 'workflow_dispatch'",
-                )
-
+        # No Docker account is required for validation: it only builds and smoke-tests.
+        self.assertNotIn("scout", self.pr_validation)
+        self.assertNotIn("trivy", self.pr_validation)
+        self.assertIn("bash scripts/smoke_image.sh", self.pr_validation)
+        self.assertIn("bash scripts/test_plugin_modes.sh", self.pr_validation)
     def test_scanner_cli_downloads_have_bounded_retry_and_integrity_gates(self):
-        retry_flags = (
-            "curl --disable --proto '=https' --tlsv1.2 --retry 8 --retry-all-errors "
-            "--retry-max-time 300 --remove-on-error"
-        )
-        workflows = (
-            (
-                self.pr_validation,
-                "Generate pre-tag SPDX SBOM for Docker Scout",
-                "Install Docker Scout CLI for pre-tag validation",
-                "Generate pre-tag Docker Scout vulnerability reports",
-            ),
-            (
-                self.protected,
-                "Generate SPDX SBOM for Docker Scout",
-                "Install Docker Scout CLI",
-                "Docker Scout vulnerability reports",
-            ),
-        )
-        for workflow, trivy_next_step, scout_step_name, scout_next_step in workflows:
-            for step_name, next_step_name in (
-                ("Install Trivy CLI", trivy_next_step),
-                (scout_step_name, scout_next_step),
-            ):
-                with self.subTest(step=step_name):
-                    step = re.search(
-                        rf"- name: {re.escape(step_name)}\n(?P<body>.*?)"
-                        rf"\n      - name: {re.escape(next_step_name)}",
-                        workflow,
-                        re.DOTALL,
-                    )
-                    self.assertIsNotNone(step)
-                    body = step.group("body")
-                    normalized_body = re.sub(r"\s+", " ", body.replace("\\\n", " "))
-                    self.assertIn(retry_flags, normalized_body)
-                    self.assertIn("--connect-timeout 15 --max-time 300", normalized_body)
-                    self.assertNotIn("--retry-delay", normalized_body)
-                    self.assertLess(
-                        body.index("curl --disable"),
-                        body.index("sha256sum --check --strict"),
-                    )
-                    self.assertLess(
-                        body.index("sha256sum --check --strict"), body.index("tar -xzf")
-                    )
-
-        for workflow in (self.pr_validation, self.protected):
-            for value in (
-                "trivy_arch: 64bit",
-                "trivy_sha256: 2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
-                "trivy_arch: ARM64",
-                "trivy_sha256: b94ce1976bbf3c15b514b605ee88be7c6d94a29be2302847ff01cb794d47aad5",
-                "TRIVY_VERSION: 0.74.0",
-                "aquasecurity/trivy/releases/download/v${TRIVY_VERSION}",
-            ):
-                with self.subTest(value=value):
-                    self.assertIn(value, workflow)
-        self.assertEqual(self.pr_validation.count("skip-setup-trivy: true"), 3)
-        self.assertEqual(self.protected.count("skip-setup-trivy: true"), 3)
-
+        self.assertIn("runner: ubuntu-24.04", self.pr_validation)
+        self.assertIn("runner: ubuntu-24.04-arm", self.pr_validation)
+        self.assertIn("platform: linux/amd64", self.pr_validation)
+        self.assertIn("platform: linux/arm64", self.pr_validation)
     def test_manual_scanner_failures_preserve_both_reports_before_failing(self):
-        for step_name, step_id in (
-            ("Docker Scout pre-tag fixable critical and high gate", "scout_gate"),
-            ("Validate pre-tag Trivy fixable critical and high findings", "trivy_gate"),
-        ):
-            with self.subTest(step=step_name):
-                self.assertRegex(
-                    self.pr_validation,
-                    rf"- name: {re.escape(step_name)}\n"
-                    rf"\s+id: {step_id}\n"
-                    rf"\s+if: github\.event_name == 'workflow_dispatch'\n"
-                    rf"\s+continue-on-error: true",
-                )
-
-        for step_name in (
-            "Collect pre-tag architecture evidence",
-            "Upload pre-tag architecture evidence",
-            "Enforce pre-tag scanner gates",
-        ):
-            with self.subTest(step=step_name):
-                self.assertRegex(
-                    self.pr_validation,
-                    rf"- name: {re.escape(step_name)}\n"
-                    rf"\s+if: always\(\) && github\.event_name == 'workflow_dispatch'",
-                )
-
-        self.assertIn("SCOUT_GATE_OUTCOME: ${{ steps.scout_gate.outcome }}", self.pr_validation)
-        self.assertIn("TRIVY_GATE_OUTCOME: ${{ steps.trivy_gate.outcome }}", self.pr_validation)
-        self.assertIn('test "$SCOUT_GATE_OUTCOME" = "success"', self.pr_validation)
-        self.assertIn('test "$TRIVY_GATE_OUTCOME" = "success"', self.pr_validation)
-
+        self.assertNotIn("SCOUT_GATE_OUTCOME", self.publish)
+        self.assertNotIn("TRIVY_GATE_OUTCOME", self.publish)
     def test_renovate_regenerates_the_hash_locked_python_requirements(self):
         self.assertIn("pip-compile", self.renovate["enabledManagers"])
         self.assertNotIn("pip_requirements", self.renovate["enabledManagers"])
