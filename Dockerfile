@@ -676,9 +676,8 @@ RUN WRANGLER_SHARP_INTEGRITY="sha512-n++8XWcj+jCOr2IOl7h8LbKnGBDY4aPbmprMONBNFdn
 RUN npm i -g --ignore-scripts \
     "paperclipai@${PAPERCLIP_VERSION}" && \
     rm -rf /root/.npm
-# Paperclip's Cursor adapter currently resolves Undici 5 through Connect 1.x.
-# Keep Paperclip stable while replacing that HTTP client with the first fixed
-# 6.x release; remove this reviewed compatibility patch when Paperclip updates Connect.
+# The bundled Paperclip Cursor adapter is unused here and is removed; the
+# reviewed undici 6.x replacement below keeps Paperclip's HTTP client patched.
 RUN test "$(npm view "undici@${PAPERCLIP_UNDICI_VERSION}" dist.integrity)" = \
       "sha512-zWpdTVD54H48CIybL0rWQ3ukpb9d23wM7eH5RtfdmeP70cWHNjtfo7P4vZX+5CoDcO53J4Pu5uXp7lNfjc6DRA==" && \
     UNDICI_TARBALL=$(npm pack --silent --pack-destination /tmp "undici@${PAPERCLIP_UNDICI_VERSION}") && \
@@ -692,7 +691,7 @@ RUN test "$(npm view "undici@${PAPERCLIP_UNDICI_VERSION}" dist.integrity)" = \
     test "$(node -p 'require("/usr/local/lib/node_modules/paperclipai/node_modules/undici/package.json").version')" = \
       "${PAPERCLIP_UNDICI_VERSION}" && \
     (cd /usr/local/lib/node_modules/paperclipai && npm ls undici --all >/dev/null) && \
-    node --input-type=module -e 'const {testEnvironment}=await import("file:///usr/local/lib/node_modules/paperclipai/node_modules/@paperclipai/adapter-cursor-cloud/dist/server/index.js"); const result=await testEnvironment({adapterType:"cursor_cloud",config:{}}); if(result.status!=="fail" || !result.checks.some((check)=>check.code==="cursor_cloud_api_key_missing")) process.exit(1)' && \
+    rm -rf /usr/local/lib/node_modules/paperclipai/node_modules/@paperclipai/adapter-cursor-cloud && \
     rm -rf /root/.npm
 # Package the supported Claude Auth plugin for network-free startup.
 RUN test "$(npm view "opencode-claude-auth@${CLAUDE_AUTH_PLUGIN_VERSION}" dist.integrity)" = \

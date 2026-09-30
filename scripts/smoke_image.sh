@@ -269,7 +269,6 @@ EOF
   (cd /usr/local/lib/node_modules/paperclipai && npm ls @paperclipai/skills-catalog --all >/dev/null)
   node -e "console.log(require(\"/usr/local/lib/node_modules/paperclipai/package.json\").version)" | grep -Fx "$EXPECTED_PAPERCLIP"
   (cd /usr/local/lib/node_modules/paperclipai && npm ls undici --all >/dev/null)
-  node --input-type=module -e "const {testEnvironment}=await import(\"file:///usr/local/lib/node_modules/paperclipai/node_modules/@paperclipai/adapter-cursor-cloud/dist/server/index.js\"); const result=await testEnvironment({adapterType:\"cursor_cloud\",config:{}}); if(result.status!==\"fail\" || !result.checks.some((check)=>check.code===\"cursor_cloud_api_key_missing\")) process.exit(1)"
   test -f /etc/s6-overlay/user-bundles.d/user/contents.d/opencode
   test -f /etc/s6-overlay/user-bundles.d/user/contents.d/xvfb
   test ! -e /etc/s6-overlay/s6-rc.d/user/contents.d/opencode

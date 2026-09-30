@@ -519,7 +519,6 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("npm ls undici --all", self.dockerfile)
         self.assertIn("npm ls tar --all", self.dockerfile)
         self.assertIn("expected_npm_tar", self.smoke)
-        self.assertIn("cursor_cloud_api_key_missing", self.smoke)
 
     def test_npm_ip_address_overlay_is_integrity_bound_and_exercised(self):
         self.assertIn("ARG NPM_IP_ADDRESS_VERSION=10.7.2", self.dockerfile)
