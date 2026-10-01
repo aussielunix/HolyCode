@@ -101,7 +101,7 @@ start_stack() {
 
   docker run -d --platform "$platform" --name "$name" \
     -v "$home_volume:/home/agent1" \
-    -v "$workspace_volume:/workspace" \
+    -v "$workspace_volume:/home/agent1/Code" \
     -e PUID=2345 \
     -e PGID=2345 \
     -e ENABLE_PAPERCLIP=true \
@@ -121,20 +121,20 @@ initialize_openspec_fixture() {
 
   docker run --rm --platform "$platform" --network none --entrypoint sh \
     --user 0:0 \
-    -v "$workspace_volume:/workspace" \
+    -v "$workspace_volume:/home/agent1/Code" \
     "$current_image" -lc '
-      chown 2345:2345 /workspace
-      chmod 0755 /workspace
-      install -o 2345 -g 2345 -m 0644 /dev/null /workspace/.holycode-openspec-fixture
+      chown 2345:2345 /home/agent1/Code
+      chmod 0755 /home/agent1/Code
+      install -o 2345 -g 2345 -m 0644 /dev/null /home/agent1/Code/.holycode-openspec-fixture
     '
   docker run --rm --platform "$platform" --network none --entrypoint sh \
     --user 2345:2345 \
     -e OPENSPEC_TELEMETRY=0 \
-    -v "$workspace_volume:/workspace" \
-    -w /workspace \
+    -v "$workspace_volume:/home/agent1/Code" \
+    -w /home/agent1/Code \
     "$current_image" -lc '
-      if ! test -w /workspace; then
-        stat -c "%A %u:%g %n" /workspace >&2
+      if ! test -w /home/agent1/Code; then
+        stat -c "%A %u:%g %n" /home/agent1/Code >&2
         echo "OpenSpec fixture is not writable by 2345:2345" >&2
         exit 1
       fi
@@ -142,11 +142,11 @@ initialize_openspec_fixture() {
     '
   docker run --rm --platform "$platform" --network none --entrypoint sh \
     --user 0:0 \
-    -v "$workspace_volume:/workspace" \
+    -v "$workspace_volume:/home/agent1/Code" \
     "$current_image" -lc '
-      rm -f /workspace/.holycode-openspec-fixture
-      chown 2345:2345 /workspace
-      chmod 0755 /workspace
+      rm -f /home/agent1/Code/.holycode-openspec-fixture
+      chown 2345:2345 /home/agent1/Code
+      chmod 0755 /home/agent1/Code
     '
 }
 
@@ -154,12 +154,12 @@ snapshot_openspec_volume() {
   local workspace_volume="$1"
 
   docker run --rm --platform "$platform" --network none --entrypoint sh \
-    -v "$workspace_volume:/workspace:ro" \
+    -v "$workspace_volume:/home/agent1/Code:ro" \
     "$current_image" -lc '
       {
-        find /workspace -xdev -printf "%P|%y|%m|%U:%G\n" | LC_ALL=C sort
-        find /workspace -xdev -type l -printf "%P|%l\n" | LC_ALL=C sort
-        find /workspace -xdev -type f -print0 | LC_ALL=C sort -z | xargs -0r sha256sum
+        find /home/agent1/Code -xdev -printf "%P|%y|%m|%U:%G\n" | LC_ALL=C sort
+        find /home/agent1/Code -xdev -type l -printf "%P|%l\n" | LC_ALL=C sort
+        find /home/agent1/Code -xdev -type f -print0 | LC_ALL=C sort -z | xargs -0r sha256sum
       } | sha256sum
     '
 }
@@ -996,15 +996,15 @@ seed_paperclip_state() {
   company_id="$(printf '%s' "$response" | json_field "$name" id)"
 
   response="$(api_post "$name" "/api/companies/${company_id}/agents" \
-    '{"name":"Upgrade CEO","role":"ceo","adapterType":"opencode_local","adapterConfig":{"cwd":"/workspace","model":"holycode/upgrade-model"},"budgetMonthlyCents":5000,"metadata":{"fixture":"v1.1.3"}}')"
+    '{"name":"Upgrade CEO","role":"ceo","adapterType":"opencode_local","adapterConfig":{"cwd":"/home/agent1/Code","model":"holycode/upgrade-model"},"budgetMonthlyCents":5000,"metadata":{"fixture":"v1.1.3"}}')"
   agent_id="$(printf '%s' "$response" | json_field "$name" id)"
 
   response="$(api_post "$name" "/api/companies/${company_id}/agents" \
-    '{"name":"Legacy ACP Agent","role":"engineer","adapterType":"acpx_local","adapterConfig":{"agent":"codex","cwd":"/workspace","model":"openai/gpt-5","reasoningEffort":"high"},"metadata":{"fixture":"acpx-migration"}}')"
+    '{"name":"Legacy ACP Agent","role":"engineer","adapterType":"acpx_local","adapterConfig":{"agent":"codex","cwd":"/home/agent1/Code","model":"openai/gpt-5","reasoningEffort":"high"},"metadata":{"fixture":"acpx-migration"}}')"
   legacy_acp_agent_id="$(printf '%s' "$response" | json_field "$name" id)"
 
   response="$(api_post "$name" "/api/companies/${company_id}/projects" \
-    "{\"name\":\"Upgrade Project\",\"description\":\"Persisted project fixture\",\"status\":\"in_progress\",\"leadAgentId\":\"${agent_id}\",\"workspace\":{\"name\":\"Primary\",\"sourceType\":\"local_path\",\"cwd\":\"/workspace\",\"isPrimary\":true}}")"
+    "{\"name\":\"Upgrade Project\",\"description\":\"Persisted project fixture\",\"status\":\"in_progress\",\"leadAgentId\":\"${agent_id}\",\"workspace\":{\"name\":\"Primary\",\"sourceType\":\"local_path\",\"cwd\":\"/home/agent1/Code\",\"isPrimary\":true}}")"
   project_id="$(printf '%s' "$response" | json_field "$name" id)"
 
   response="$(api_post "$name" "/api/companies/${company_id}/issues" \
@@ -1232,16 +1232,16 @@ assert_persisted_state() {
   docker exec "$name" test -f /home/agent1/.claude/holycode-upgrade-auth-marker
   docker exec "$name" test -f /home/agent1/.hermes/holycode-upgrade-marker
   docker exec "$name" test -f /home/agent1/.paperclip/instances/default/data/holycode-upgrade-marker
-  docker exec "$name" test -f /workspace/holycode-upgrade-marker
+  docker exec "$name" test -f /home/agent1/Code/holycode-upgrade-marker
   docker exec "$name" grep -Fq 'holycode-upgrade-model' /home/agent1/.config/opencode/opencode.json
-  [ "$(docker exec "$name" stat -c %u /workspace/holycode-upgrade-marker)" = "2345" ]
+  [ "$(docker exec "$name" stat -c %u /home/agent1/Code/holycode-upgrade-marker)" = "2345" ]
 
   api_get "$name" "/api/companies/${company_id}" |
     assert_json_field "$name" name "HolyCode Upgrade Fixture"
   api_get "$name" "/api/agents/${agent_id}" |
     assert_json_field "$name" adapterConfig.model "holycode/upgrade-model"
   api_get "$name" "/api/projects/${project_id}" |
-    assert_json_field "$name" primaryWorkspace.cwd "/workspace"
+    assert_json_field "$name" primaryWorkspace.cwd "/home/agent1/Code"
   api_get "$name" "/api/issues/${issue_id}" |
     assert_json_field "$name" projectId "$project_id"
   api_get "$name" "/api/companies/${company_id}/skills/${skill_id}" |
@@ -1267,7 +1267,7 @@ docker exec -u agent1 "$baseline_name" sh -lc '
   touch /home/agent1/.claude/holycode-upgrade-auth-marker
   touch /home/agent1/.hermes/holycode-upgrade-marker
   touch /home/agent1/.paperclip/instances/default/data/holycode-upgrade-marker
-  touch /workspace/holycode-upgrade-marker
+  touch /home/agent1/Code/holycode-upgrade-marker
 '
 assert_persisted_state "$baseline_name" baseline
 openspec_before="$(snapshot_openspec_volume "$baseline_workspace")"

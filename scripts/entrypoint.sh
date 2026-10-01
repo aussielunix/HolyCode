@@ -9,7 +9,7 @@ set -e
 
 OC_USER="agent1"
 OC_HOME="/home/agent1"
-WORKSPACE_DIR="/workspace"
+WORKSPACE_DIR="/home/agent1/Code"
 CLAUDE_AUTH_PLUGIN_NAME="opencode-claude-auth"
 CLAUDE_AUTH_PLUGIN_VERSION="2.2.1"
 CLAUDE_AUTH_PLUGIN_SOURCE="/usr/local/share/holycode/plugins/opencode-claude-auth"
@@ -320,15 +320,15 @@ for dir in \
 done
 chown "$PUID:$PGID" "$OC_HOME/.config" "$OC_HOME/.local" "$OC_HOME/.local/share" "$OC_HOME/.local/state" "$OC_HOME/.cache" 2>/dev/null || true
 
-# ---------- Ensure /workspace is writable ----------
+# ---------- Ensure /home/agent1/Code is writable ----------
 mkdir -p "$WORKSPACE_DIR"
 if ! runuser -u "$OC_USER" -- test -w "$WORKSPACE_DIR"; then
-    echo "[entrypoint] /workspace is not writable for $OC_USER, attempting ownership fix"
+    echo "[entrypoint] /home/agent1/Code is not writable for $OC_USER, attempting ownership fix"
     chown "$PUID:$PGID" "$WORKSPACE_DIR" 2>/dev/null || true
 fi
 
 if ! runuser -u "$OC_USER" -- test -w "$WORKSPACE_DIR"; then
-    echo "[entrypoint] WARNING: /workspace is still not writable; fix host ownership or PUID/PGID"
+    echo "[entrypoint] WARNING: /home/agent1/Code is still not writable; fix host ownership or PUID/PGID"
 fi
 
 check_cifs_compatibility() {

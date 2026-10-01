@@ -816,8 +816,8 @@ if command -v cygpath >/dev/null 2>&1; then
 fi
 cleanup_openspec_workspace() {
   docker run --rm --network none --user 0:0 --entrypoint sh \
-    -v "$openspec_bind_source:/workspace" \
-    "$image" -c 'find /workspace -mindepth 1 -delete' >/dev/null 2>&1 || true
+    -v "$openspec_bind_source:/home/agent1/Code" \
+    "$image" -c 'find /home/agent1/Code -mindepth 1 -delete' >/dev/null 2>&1 || true
   rm -rf "$openspec_workspace"
 }
 trap cleanup_openspec_workspace EXIT
@@ -825,8 +825,8 @@ chmod 0777 "$openspec_workspace"
 docker run --rm --network none --user 1000:1000 --entrypoint sh \
   -e EXPECTED_OPENSPEC="$expected_openspec" \
   -e OPENSPEC_TELEMETRY=0 \
-  -v "$openspec_bind_source:/workspace" \
-  -w /workspace \
+  -v "$openspec_bind_source:/home/agent1/Code" \
+  -w /home/agent1/Code \
   "$image" -lc '
   set -eu
   test "$(openspec --version)" = "$EXPECTED_OPENSPEC"

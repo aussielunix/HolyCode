@@ -22,7 +22,7 @@ services:
       - ./local-cache/agent1:/home/agent1/.cache/opencode
 
       # --- Workspace ---
-      - ./workspace:/workspace # Your project files
+      - ./workspace:/home/agent1/Code # Your project files
 
     environment:
       # --- Container user ---

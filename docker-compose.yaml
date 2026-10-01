@@ -15,7 +15,7 @@ services:
     volumes:
       - ./data/agent1:/home/agent1
       - ./local-cache/agent1:/home/agent1/.cache/opencode
-      - ./workspace:/workspace
+      - ./workspace:/home/agent1/Code
     environment:
       - PUID=1000
       - PGID=1000

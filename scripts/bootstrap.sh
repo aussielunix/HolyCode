@@ -53,7 +53,7 @@ sync_shipped_skills
 # ---------- Git configuration ----------
 GIT_USER_NAME="${GIT_USER_NAME:-HolyCode User}"
 GIT_USER_EMAIL="${GIT_USER_EMAIL:-noreply@holycode.local}"
-runuser -u "$OC_USER" -- git config --global safe.directory /workspace
+runuser -u "$OC_USER" -- git config --global safe.directory /home/agent1/Code
 runuser -u "$OC_USER" -- git config --global user.name "$GIT_USER_NAME"
 runuser -u "$OC_USER" -- git config --global user.email "$GIT_USER_EMAIL"
 echo "[bootstrap] Configured git as '$GIT_USER_NAME <$GIT_USER_EMAIL>'"

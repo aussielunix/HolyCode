@@ -186,7 +186,7 @@ ARG SETUPTOOLS_VERSION=84.0.0
 ARG RELEASE_APT_REFRESH=2026-09-24
 ARG TARGETARCH
 
-LABEL org.opencontainers.image.source=https://github.com/CoderLuii/HolyCode \
+LABEL org.opencontainers.image.source=https://github.com/aussielunix/HolyCode \
     io.holycode.version.github-cli=${GITHUB_CLI_VERSION} \
     io.holycode.version.opencode=${OPENCODE_VERSION} \
     io.holycode.version.claude-code=${CLAUDE_CODE_VERSION} \
@@ -763,7 +763,7 @@ RUN chmod +x /etc/s6-overlay/s6-rc.d/xvfb/run && \
 
 
 # ---------- Working directory ----------
-WORKDIR /workspace
+WORKDIR /home/agent1/Code
 
 # ---------- Expose web UI port ----------
 EXPOSE 4096

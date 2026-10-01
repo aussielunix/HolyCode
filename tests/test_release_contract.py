@@ -1077,7 +1077,7 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("--user 1000:1000", self.smoke)
         self.assertIn("cleanup_openspec_workspace()", self.smoke)
         self.assertIn("--network none --user 0:0 --entrypoint sh", self.smoke)
-        self.assertIn("find /workspace -mindepth 1 -delete", self.smoke)
+        self.assertIn("find /home/agent1/Code -mindepth 1 -delete", self.smoke)
         self.assertIn("trap cleanup_openspec_workspace EXIT", self.smoke)
         self.assertIn('openspec_bind_source="$openspec_workspace"', self.smoke)
         self.assertIn("if command -v cygpath >/dev/null 2>&1; then", self.smoke)
@@ -1086,10 +1086,10 @@ class ReleaseContractTests(unittest.TestCase):
             self.smoke,
         )
         self.assertEqual(
-            self.smoke.count('-v "$openspec_bind_source:/workspace"'),
+            self.smoke.count('-v "$openspec_bind_source:/home/agent1/Code"'),
             2,
         )
-        self.assertNotIn('-v "$openspec_workspace:/workspace"', self.smoke)
+        self.assertNotIn('-v "$openspec_workspace:/home/agent1/Code"', self.smoke)
         self.assertIn("openspec list --json", self.smoke)
         self.assertGreaterEqual(self.smoke.count("openspec init --tools opencode"), 2)
         self.assertIn("snapshot_openspec_workspace", self.smoke)
@@ -1135,16 +1135,16 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("openspec_startup_no_mutation=true", self.upgrade)
         self.assertIn("--user 2345:2345", self.upgrade)
         self.assertIn("--user 0:0", self.upgrade)
-        self.assertIn('chown 2345:2345 /workspace', self.upgrade)
-        self.assertIn('install -o 2345 -g 2345 -m 0644 /dev/null /workspace/.holycode-openspec-fixture', self.upgrade)
-        self.assertIn('rm -f /workspace/.holycode-openspec-fixture', self.upgrade)
-        self.assertGreaterEqual(self.upgrade.count('chmod 0755 /workspace'), 1)
-        self.assertIn('test -w /workspace', self.upgrade)
+        self.assertIn('chown 2345:2345 /home/agent1/Code', self.upgrade)
+        self.assertIn('install -o 2345 -g 2345 -m 0644 /dev/null /home/agent1/Code/.holycode-openspec-fixture', self.upgrade)
+        self.assertIn('rm -f /home/agent1/Code/.holycode-openspec-fixture', self.upgrade)
+        self.assertGreaterEqual(self.upgrade.count('chmod 0755 /home/agent1/Code'), 1)
+        self.assertIn('test -w /home/agent1/Code', self.upgrade)
         self.assertIn('OpenSpec fixture is not writable by 2345:2345', self.upgrade)
         self.assertIn("openspec_before", self.upgrade)
         self.assertIn("openspec_after", self.upgrade)
-        self.assertIn('find /workspace -xdev -printf "%P|%y|%m|%U:%G', self.upgrade)
-        self.assertIn('find /workspace -xdev -type f -print0', self.upgrade)
+        self.assertIn('find /home/agent1/Code -xdev -printf "%P|%y|%m|%U:%G', self.upgrade)
+        self.assertIn('find /home/agent1/Code -xdev -type f -print0', self.upgrade)
         self.assertRegex(
             self.upgrade,
             r'start_stack "\$baseline_name"[^\n]*\n'
