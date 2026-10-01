@@ -764,6 +764,7 @@ RUN chmod +x /etc/s6-overlay/s6-rc.d/xvfb/run && \
 
 # ---------- Working directory ----------
 WORKDIR /home/agent1/Code
+RUN chown agent1:agent1 /home/agent1/Code
 
 # ---------- Expose web UI port ----------
 EXPOSE 4096

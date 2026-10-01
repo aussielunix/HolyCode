@@ -320,13 +320,9 @@ for dir in \
 done
 chown "$PUID:$PGID" "$OC_HOME/.config" "$OC_HOME/.local" "$OC_HOME/.local/share" "$OC_HOME/.local/state" "$OC_HOME/.cache" 2>/dev/null || true
 
-# ---------- Ensure /home/agent1/Code is writable ----------
+# ---------- Ensure /home/agent1/Code is owned by the app user ----------
 mkdir -p "$WORKSPACE_DIR"
-if ! runuser -u "$OC_USER" -- test -w "$WORKSPACE_DIR"; then
-    echo "[entrypoint] /home/agent1/Code is not writable for $OC_USER, attempting ownership fix"
-    chown "$PUID:$PGID" "$WORKSPACE_DIR" 2>/dev/null || true
-fi
-
+chown "$PUID:$PGID" "$WORKSPACE_DIR" 2>/dev/null || true
 if ! runuser -u "$OC_USER" -- test -w "$WORKSPACE_DIR"; then
     echo "[entrypoint] WARNING: /home/agent1/Code is still not writable; fix host ownership or PUID/PGID"
 fi
