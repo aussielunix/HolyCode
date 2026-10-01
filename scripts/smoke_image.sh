@@ -39,6 +39,7 @@ expected_s6="$(image_label io.holycode.version.s6-overlay)"
 expected_fzf="$(image_label io.holycode.version.fzf)"
 expected_lazygit="$(image_label io.holycode.version.lazygit)"
 expected_github_cli="$(image_label io.holycode.version.github-cli)"
+expected_goose="$(image_label io.holycode.version.goose)"
 
 secret_pattern='(_API_KEY|TOKEN|SECRET|PASSWORD)=[^[:space:]]+'
 
@@ -84,6 +85,7 @@ docker run --rm -i --network none --security-opt "seccomp=$seccomp_profile" --en
   -e EXPECTED_FZF="$expected_fzf" \
   -e EXPECTED_LAZYGIT="$expected_lazygit" \
   -e EXPECTED_GITHUB_CLI="$expected_github_cli" \
+  -e EXPECTED_GOOSE="$expected_goose" \
   "$image" -lc 'exec sh -eu -s' <<'HOLYCODE_SMOKE'
   set -eu
   test ! -e /root/.npm
@@ -159,6 +161,7 @@ EOF
   rm -rf "$lazygit_home" "$lazygit_repo"
   test "$(command -v gh)" = "/usr/local/bin/gh"
   gh --version | grep -F "gh version $EXPECTED_GITHUB_CLI"
+  goose --version | grep -F "$EXPECTED_GOOSE"
   ! dpkg-query -W gh >/dev/null 2>&1
 
   test -f /usr/local/share/holycode/plugins/opencode-claude-auth/package.json

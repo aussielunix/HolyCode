@@ -13,6 +13,9 @@ ARG FZF_REF=a140afeb4d733cad3c96a56bf6db7e26853b6757
 ARG LAZYGIT_VERSION=0.65.1
 ARG LAZYGIT_REF=17cb09fa7b08bc96d9f0e81b91f4720fc1a36700
 
+# renovate: datasource=github-releases depName=aaif-goose/goose
+ARG GOOSE_VERSION=1.52.0
+
 # Rebuild exact release sources with reviewed dependency fixes.
 FROM --platform=$BUILDPLATFORM golang:1.27.1-trixie@sha256:433790e515d27dc6003e847e644cc0af956985cf315c1c58a3b73ee2dd305183 AS github-cli-builder
 ARG GITHUB_CLI_VERSION
@@ -187,6 +190,7 @@ LABEL org.opencontainers.image.source=https://github.com/CoderLuii/HolyCode \
     io.holycode.version.github-cli=${GITHUB_CLI_VERSION} \
     io.holycode.version.opencode=${OPENCODE_VERSION} \
     io.holycode.version.claude-code=${CLAUDE_CODE_VERSION} \
+    io.holycode.version.goose=${GOOSE_VERSION} \
     io.holycode.version.openspec=${OPENSPEC_VERSION} \
     io.holycode.version.claude-auth-plugin=${CLAUDE_AUTH_PLUGIN_VERSION} \
     io.holycode.version.npm=${NPM_VERSION} \
@@ -305,6 +309,11 @@ RUN gh --version | grep -F "gh version ${GITHUB_CLI_VERSION}"
 # ---------- lazygit ----------
 COPY --from=lazygit-builder /out/lazygit /usr/local/bin/lazygit
 RUN lazygit --version | grep -F "version=${LAZYGIT_VERSION}"
+
+# ---------- goose (agentic CLI) ----------
+RUN curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh \
+    | GOOSE_VERSION="${GOOSE_VERSION}" GOOSE_BIN_DIR=/usr/local/bin CONFIGURE=false bash \
+    && goose --version | grep -F "${GOOSE_VERSION}"
 
 # ---------- delta (git diff pager) ----------
 RUN DELTA_ARCH=$(case "$TARGETARCH" in arm64) echo "aarch64-unknown-linux-gnu";; *) echo "x86_64-unknown-linux-gnu";; esac) && \
