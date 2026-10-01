@@ -278,9 +278,10 @@ RUN printf 'agent1:100000:65536\n' > /etc/subuid && \
 # Container storage lives under the app user's home (agent1). The Smolfile
 # bind-mounts a persistent host dir over /home/agent1/.local/share/containers so
 # nested container layers survive reboots; the transient VM rootfs is unsuitable.
-# Per smol-machines guidance this uses /dev/fuse (fuse-overlayfs) for rootless ops.
+# Driver is 'vfs' (no overlay mount, no /dev/fuse, works on host-dir bind mounts).
+# Switch to 'overlay2' once the microVM exposes a real ext4 persistent disk.
 RUN mkdir -p /etc/containers /etc/containers/registries.conf.d && \
-    printf '[storage]\ndriver = "overlay2"\nrunroot = "/home/agent1/.run/containers"\ngraphroot = "/home/agent1/.local/share/containers/storage"\n[storage.options.overlay]\nmount_program = "/usr/bin/fuse-overlayfs"\n' > /etc/containers/storage.conf
+    printf '[storage]\ndriver = "vfs"\nrunroot = "/home/agent1/.run/containers"\ngraphroot = "/home/agent1/.local/share/containers/storage"\n' > /etc/containers/storage.conf
 
 # Rootless Podman runtime dir lives under the app user's home (user-writable,
 # persistent) instead of tmpfs /run/user, which smolvm may not populate.
