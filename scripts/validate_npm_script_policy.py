@@ -30,11 +30,20 @@ def is_package_root(package_json: Path) -> bool:
 
 
 def registry_integrity(package_id: str) -> str:
-    return subprocess.check_output(
-        ["npm", "view", package_id, "dist.integrity"],
-        text=True,
-        stderr=subprocess.STDOUT,
-    ).strip()
+    # `npm view` hits the registry; retry transient failures so a network
+    # hiccup during the build does not fail the lifecycle-policy gate.
+    last_error: subprocess.CalledProcessError | None = None
+    for _ in range(3):
+        try:
+            return subprocess.check_output(
+                ["npm", "view", package_id, "dist.integrity"],
+                text=True,
+                stderr=subprocess.STDOUT,
+            ).strip()
+        except subprocess.CalledProcessError as error:
+            last_error = error
+    assert last_error is not None
+    raise last_error
 
 
 def main() -> int:
