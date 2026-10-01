@@ -13,7 +13,6 @@ services:
 
     ports:
       - "4096:4096" # OpenCode web UI
-      # - "3100:3100" # Paperclip dashboard
 
     volumes:
       # --- Persistent state (all OpenCode data under home dir) ---
@@ -82,13 +81,6 @@ services:
       # - HOLYCODE_PLUGIN_UPDATE=manual
 
       # --- Bundled services ---
-      # Paperclip starts a local board dashboard and hires OpenCode agents through the UI
-      # - ENABLE_PAPERCLIP=true
-      # - PAPERCLIP_PORT=3100
-      # - PAPERCLIP_INSTANCE_ID=default
-      # - PAPERCLIP_DEPLOYMENT_MODE=authenticated
-      # - PAPERCLIP_BIND=lan
-      # - PAPERCLIP_ALLOWED_HOSTNAMES=192.168.1.50,my-host.local
 
       # --- CLIProxyAPI (externally managed endpoint) ---
       # Adds a separate OpenCode provider named "cliproxyapi". Does not replace Claude Auth.

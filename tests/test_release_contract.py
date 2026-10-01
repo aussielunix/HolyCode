@@ -85,9 +85,7 @@ class ReleaseContractTests(unittest.TestCase):
             "ARG LAZYGIT_VERSION=0.65.1",
             "ARG OPENCODE_VERSION=2.0.18",
             "ARG CLAUDE_CODE_VERSION=2.1.281",
-            "ARG PAPERCLIP_VERSION=2026.831.1",
             "ARG OPENSPEC_VERSION=1.13.2",
-            "ARG PAPERCLIP_UNDICI_VERSION=6.28.1",
             "ARG CLAUDE_AUTH_PLUGIN_VERSION=2.2.1",
             "ARG TYPESCRIPT_VERSION=6.0.3",
             "ARG NPM_VERSION=12.1.0",
@@ -159,13 +157,6 @@ class ReleaseContractTests(unittest.TestCase):
         )
         self.assertIn("setuptools==$EXPECTED_PIP_VENDOR_PKG_RESOURCES", self.smoke)
         self.assertIn("import pip._vendor.pkg_resources", self.smoke)
-        self.assertIn(
-            "node -e 'const ssh2=require("
-            '"/usr/local/lib/node_modules/paperclipai/node_modules/ssh2"'
-            "); if(typeof ssh2.Client!==\"function\") process.exit(1)' && \\\n"
-            "    rm -rf /root/.npm",
-            self.dockerfile,
-        )
         self.assertIn("test ! -e /root/.npm", self.smoke)
         for value in (
             'metadata.version("fonttools") == "4.65.0"',
@@ -396,7 +387,6 @@ class ReleaseContractTests(unittest.TestCase):
             self.assertEqual(old_count, int(match.group(2)), lines[index])
             self.assertEqual(new_count, int(match.group(4)), lines[index])
         self.assertIn("bom.cdx.json", self.dockerfile)
-        self.assertIn("ARG PAPERCLIP_UNDICI_VERSION=6.28.1", self.dockerfile)
         self.assertIn("ARG NPM_TAR_VERSION=7.5.22", self.dockerfile)
         self.assertNotIn("python3 python3-pip python3-venv", self.dockerfile)
         self.assertIn("python3 python3-venv", self.dockerfile)
@@ -506,17 +496,11 @@ class ReleaseContractTests(unittest.TestCase):
         ):
             with self.subTest(assertion=assertion):
                 self.assertIn(assertion, self.smoke)
-        self.assertIn("undici@${PAPERCLIP_UNDICI_VERSION}", self.dockerfile)
-        self.assertIn(
-            "sha512-zWpdTVD54H48CIybL0rWQ3ukpb9d23wM7eH5RtfdmeP70cWHNjtfo7P4vZX+5CoDcO53J4Pu5uXp7lNfjc6DRA==",
-            self.dockerfile,
-        )
         self.assertIn(
             'grep -F "<policy domain=\\"coder\\" rights=\\"read|write\\" '
             'pattern=\\"{GIF,JPEG,PNG,WEBP}\\" />"',
             self.smoke,
         )
-        self.assertIn("npm ls undici --all", self.dockerfile)
         self.assertIn("npm ls tar --all", self.dockerfile)
         self.assertIn("expected_npm_tar", self.smoke)
 
@@ -974,16 +958,11 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("native ARM64", audit)
         self.assertIn("`opencode-claude-auth 2.2.1`", audit)
         for value in (
-            "| Paperclip | 2026.831.1 | 2026.916.1 |",
-            "supported narrow self-hosted control preserves explicit user choices",
             "| TypeScript | 6.0.3 | 7.0.2 |",
             "| Prisma | 7.10.0 | 8.0.0-rc.15 |",
             "| json-server | 0.17.4 | 1.0.0-beta.15 |",
             "| PM2-owned js-yaml | 4.3.2 | 5.4.2 |",
-            "| Paperclip-owned Undici | 6.28.1 | 8.10.2 |",
             "Drizzle ORM 0.45.3 is a fixture-only compatibility dependency",
-            "16 local entries with 27 verified local files",
-            "one optional pinned remote descriptor with 79 metadata records",
             "does not claim the release has shipped",
         ):
             with self.subTest(dependency_hold=value):
@@ -1245,36 +1224,6 @@ class ReleaseContractTests(unittest.TestCase):
         ):
             with self.subTest(assertion=assertion):
                 self.assertIn(assertion, self.upgrade)
-
-    def test_paperclip_packaged_skill_catalog_is_exercised_without_user_skill_writes(self):
-        for value in (
-            "paperclip_catalog=/usr/local/lib/node_modules/paperclipai/node_modules/@paperclipai/skills-catalog/generated/catalog.json",
-            'catalog.packageName !== "@paperclipai/skills-catalog"',
-            "catalog.schemaVersion !== 1",
-            "catalog.skills.length === 0",
-            'allowedTrustLevels = new Set(["markdown_only", "assets", "scripts_executables"])',
-            "skill.trustLevel !== derivedTrustLevel",
-            'skill.id !== "paperclipai:optional:research:last30days"',
-            'resolve(lexicalSkillRoot, "catalog-ref.json")',
-            "descriptor.source?.[key] !== source[key]",
-            "localSkills !== 16 || remoteSkills !== 1 || localFiles !== 27 || remoteFiles !== 79",
-            "remoteFiles += 1",
-            "remote.files.length !== 79",
-            "remote.files = remote.files.slice(0, -1)",
-            "truncated remote catalog metadata was accepted",
-            "file.sizeBytes <= 0",
-            "statSync(filePath).size !== file.sizeBytes",
-            "realpathSync",
-            "isSymbolicLink()",
-            'createHash("sha256").update(readFileSync(filePath)).digest("hex") !== file.sha256',
-            "npm ls @paperclipai/skills-catalog --all",
-            "catalog symlink escape was accepted",
-            "ln -s /etc/passwd",
-        ):
-            with self.subTest(value=value):
-                self.assertIn(value, self.smoke)
-        self.assertNotIn("tracked17skillpayload", self.smoke)
-        self.assertNotIn("/home/opencode/.config/opencode/skills", self.smoke)
 
     def test_release_workflows_bind_and_promote_the_validated_candidate(self):
         self.assertIn("group: docker-release", self.publish)

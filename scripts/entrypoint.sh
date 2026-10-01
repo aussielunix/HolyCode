@@ -383,14 +383,8 @@ if [ "${ENABLE_OH_MY_OPENAGENT}" = "true" ]; then
     exit 1
 fi
 
-if [ "${ENABLE_PAPERCLIP}" = "true" ]; then
-    export PAPERCLIP_HOME="${PAPERCLIP_HOME:-$OC_HOME/.paperclip}"
-    mkdir -p "$PAPERCLIP_HOME"
-    chown "$PUID:$PGID" "$PAPERCLIP_HOME" 2>/dev/null || true
-    touch /etc/s6-overlay/user-bundles.d/user/contents.d/paperclip
-else
-    rm -f /etc/s6-overlay/user-bundles.d/user/contents.d/paperclip
-fi
+# Paperclip is no longer bundled; ensure no stale service registration exists.
+rm -f /etc/s6-overlay/user-bundles.d/user/contents.d/paperclip
 
 # ---------- Plugin toggles (run every boot for enable/disable) ----------
 CONFIG_FILE="$OC_HOME/.config/opencode/opencode.json"

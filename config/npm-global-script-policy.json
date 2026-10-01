@@ -3,78 +3,95 @@
   "mode": "deny-by-default",
   "allowScripts": {
     "@anthropic-ai/claude-code@2.1.281": {
-      "architectures": ["amd64", "arm64"],
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
       "integrity": "sha512-sldhFsGqOnGA8pfOMLjyc+Sc331VkZ1TsP1sdpvMeVFYBikC5x53miTCsnTiE6Bio74IYPn7BIzTNbHcRp5fXQ==",
-      "scripts": { "postinstall": "node install.cjs" },
+      "scripts": {
+        "postinstall": "node install.cjs"
+      },
       "reason": "Claude Code uses this script to install its pinned platform-native binary."
     },
     "@opencode/cli@2.0.18": {
-      "architectures": ["amd64", "arm64"],
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
       "integrity": "sha512-EkIxIa2goJ2v8U3Os2gpRckOIjN9gpUBXy6fyVOFbPZl71rkGpoF3NFsm4nlDiF2BgnIqcgJU5NgdV1k6/OZuw==",
-      "scripts": { "postinstall": "node ./postinstall.mjs" },
+      "scripts": {
+        "postinstall": "node ./postinstall.mjs"
+      },
       "reason": "OpenCode uses this script to hydrate its pinned platform CLI and refuses to start without it."
-    },
-    "@embedded-postgres/linux-x64@18.1.0-beta.16": {
-      "architectures": ["amd64"],
-      "integrity": "sha512-+GIabpHh7QV2AcYBuzyQC41AYczSFphxfHy4ccTPIPrp6OSthZXH+A9fymjQzOiDHg9+1UeYET00Aj7sScjXrg==",
-      "scripts": { "postinstall": "node scripts/hydrate-symlinks.js" },
-      "reason": "Paperclip requires the packaged PostgreSQL library symlinks before it drops to the unprivileged runtime user."
-    },
-    "@embedded-postgres/linux-arm64@18.1.0-beta.16": {
-      "architectures": ["arm64"],
-      "integrity": "sha512-G0f/reVFc7svqncDQL7blwKulzYIYsz+o/3TEtAJOaGMXYkD8Swzv9RFKfEJOr9+IVRwCmoFFppMeBnUwMoGZg==",
-      "scripts": { "postinstall": "node scripts/hydrate-symlinks.js" },
-      "reason": "Paperclip requires the packaged PostgreSQL library symlinks before it drops to the unprivileged runtime user."
     }
   },
   "blockedScripts": {
     "esbuild@0.28.1": {
-      "architectures": ["amd64", "arm64"],
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
       "integrity": "sha512-HrJrvZv5ayxBzPfwphOoNzkzOIIlifzk0KJrGK2c8R4+LKpMtpYLQeUdjnwjWv/LZlkH2laZk+4w78pi99D4Vw==",
-      "scripts": { "postinstall": "node install.js" },
+      "scripts": {
+        "postinstall": "node install.js"
+      },
       "reason": "Wrangler 4.138.0 pins this nested esbuild release; its platform binary is packaged and exercised by Wrangler validation."
     },
     "esbuild@0.28.2": {
-      "architectures": ["amd64", "arm64"],
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
       "integrity": "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==",
-      "scripts": { "postinstall": "node install.js" },
+      "scripts": {
+        "postinstall": "node install.js"
+      },
       "reason": "The platform binary is packaged and verified directly."
     },
     "prisma@7.10.0": {
-      "architectures": ["amd64", "arm64"],
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
       "integrity": "sha512-o0ornyJOWgygVAzGCpr8PdXV8EJLHyVGDDUr/voBQt8Azzw8cYTByzzPGcA/m4tCkPcnJA8raEOv2CslsKhPEw==",
-      "scripts": { "preinstall": "node scripts/preinstall-entry.js" },
+      "scripts": {
+        "preinstall": "node scripts/preinstall-entry.js"
+      },
       "reason": "The pinned CLI and packaged engine are verified directly."
     },
     "@prisma/engines@7.10.0": {
-      "architectures": ["amd64", "arm64"],
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
       "integrity": "sha512-KNumN6NHFwybvfdYzTee9pqwx5PvknpWAaHn6L5NsbrKdl+SQrsVZs9opKs6U6SAsvB26HDt3WybRjOhgoWOYQ==",
-      "scripts": { "postinstall": "node scripts/postinstall.js" },
+      "scripts": {
+        "postinstall": "node scripts/postinstall.js"
+      },
       "reason": "The packaged Prisma engine is verified by the CLI smoke test."
     },
     "workerd@1.20260921.1": {
-      "architectures": ["amd64", "arm64"],
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
       "integrity": "sha512-4HyG7G1W4ksa6tUZ8bV2jxDRWuL5PXnHm9+Z1sjFPb9OZNoYtXz4y7QQRh4ibi0BF/lOmlAVjbhkUqsAVZuUKA==",
-      "scripts": { "postinstall": "node install.js" },
+      "scripts": {
+        "postinstall": "node install.js"
+      },
       "reason": "Wrangler ships the platform binary, which is executed directly during validation."
     },
     "pnpm@12.6.0": {
-      "architectures": ["amd64", "arm64"],
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
       "integrity": "sha512-PvaPlRyxEawgS0paFvCy3fDaVqluBBPoHYVdnwtV75JnFHCQKOHNAMQFwsX7e56OxNxGd3yAXQNzwvL/AP0g7A==",
-      "scripts": { "preinstall": "node install.js", "postinstall": "node install.js" },
+      "scripts": {
+        "preinstall": "node install.js",
+        "postinstall": "node install.js"
+      },
       "reason": "The packaged pnpm launchers work with lifecycle hydration blocked and are exercised by the offline project fixture."
-    },
-    "ssh2@1.17.0": {
-      "architectures": ["amd64", "arm64"],
-      "integrity": "sha512-wPldCk3asibAjQ/kziWQQt1Wh3PgDFpC0XpwclzKcdT1vql6KeYxf5LIt4nlFkUeR8WuphYMKqUA56X4rjbfgQ==",
-      "scripts": { "install": "node install.js" },
-      "reason": "The JavaScript implementation is functional without optional CPU feature compilation."
-    },
-    "cpu-features@0.0.10": {
-      "architectures": ["amd64", "arm64"],
-      "integrity": "sha512-9IkYqtX3YHPCzoVg1Py+o9057a3i0fp7S530UWokCSaFVTc7CwXPRiOjRjBQQ18ZCNafx78YfnG+HALxtVmOGA==",
-      "scripts": { "install": "node buildcheck.js > buildcheck.gypi && node-gyp rebuild" },
-      "reason": "Optional SSH acceleration is not required for Paperclip."
     }
   }
 }

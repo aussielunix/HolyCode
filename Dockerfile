@@ -122,12 +122,8 @@ ARG EZA_VERSION=0.23.5
 ARG OPENCODE_VERSION=2.0.18
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
 ARG CLAUDE_CODE_VERSION=2.1.281
-# renovate: datasource=npm depName=paperclipai
-ARG PAPERCLIP_VERSION=2026.831.1
 # renovate: datasource=npm depName=@fission-ai/openspec
 ARG OPENSPEC_VERSION=1.13.2
-# renovate: datasource=npm depName=undici
-ARG PAPERCLIP_UNDICI_VERSION=6.28.1
 # renovate: datasource=npm depName=opencode-claude-auth
 ARG CLAUDE_AUTH_PLUGIN_VERSION=2.2.1
 # renovate: datasource=npm depName=typescript
@@ -191,7 +187,6 @@ LABEL org.opencontainers.image.source=https://github.com/CoderLuii/HolyCode \
     io.holycode.version.github-cli=${GITHUB_CLI_VERSION} \
     io.holycode.version.opencode=${OPENCODE_VERSION} \
     io.holycode.version.claude-code=${CLAUDE_CODE_VERSION} \
-    io.holycode.version.paperclip=${PAPERCLIP_VERSION} \
     io.holycode.version.openspec=${OPENSPEC_VERSION} \
     io.holycode.version.claude-auth-plugin=${CLAUDE_AUTH_PLUGIN_VERSION} \
     io.holycode.version.npm=${NPM_VERSION} \
@@ -673,26 +668,6 @@ RUN WRANGLER_SHARP_INTEGRITY="sha512-n++8XWcj+jCOr2IOl7h8LbKnGBDY4aPbmprMONBNFdn
     ! command -v sharp && \
     rm -rf /root/.npm
 
-RUN npm i -g --ignore-scripts \
-    "paperclipai@${PAPERCLIP_VERSION}" && \
-    rm -rf /root/.npm
-# The bundled Paperclip Cursor adapter is unused here and is removed; the
-# reviewed undici 6.x replacement below keeps Paperclip's HTTP client patched.
-RUN test "$(npm view "undici@${PAPERCLIP_UNDICI_VERSION}" dist.integrity)" = \
-      "sha512-zWpdTVD54H48CIybL0rWQ3ukpb9d23wM7eH5RtfdmeP70cWHNjtfo7P4vZX+5CoDcO53J4Pu5uXp7lNfjc6DRA==" && \
-    UNDICI_TARBALL=$(npm pack --silent --pack-destination /tmp "undici@${PAPERCLIP_UNDICI_VERSION}") && \
-    UNDICI_DIR=/usr/local/lib/node_modules/paperclipai/node_modules/undici && \
-    CONNECT_NODE_PACKAGE=/usr/local/lib/node_modules/paperclipai/node_modules/@connectrpc/connect-node/package.json && \
-    rm -rf "$UNDICI_DIR" && mkdir "$UNDICI_DIR" && \
-    tar -xzf "/tmp/${UNDICI_TARBALL}" -C "$UNDICI_DIR" --strip-components=1 && \
-    rm "/tmp/${UNDICI_TARBALL}" && \
-    node -e 'const fs=require("fs"); const file=process.argv[1]; const version=process.argv[2]; const pkg=JSON.parse(fs.readFileSync(file,"utf8")); pkg.dependencies.undici=version; fs.writeFileSync(file,`${JSON.stringify(pkg,null,2)}\n`)' \
-      "$CONNECT_NODE_PACKAGE" "^${PAPERCLIP_UNDICI_VERSION}" && \
-    test "$(node -p 'require("/usr/local/lib/node_modules/paperclipai/node_modules/undici/package.json").version')" = \
-      "${PAPERCLIP_UNDICI_VERSION}" && \
-    (cd /usr/local/lib/node_modules/paperclipai && npm ls undici --all >/dev/null) && \
-    rm -rf /usr/local/lib/node_modules/paperclipai/node_modules/@paperclipai/adapter-cursor-cloud && \
-    rm -rf /root/.npm
 # Package the supported Claude Auth plugin for network-free startup.
 RUN test "$(npm view "opencode-claude-auth@${CLAUDE_AUTH_PLUGIN_VERSION}" dist.integrity)" = \
       "sha512-iEXMVh2J/l8ZlNiMNp7QmtGQtAwjXgaSgXvA2zZzJbUZEOBKvuoq9gKRtqSjYB3faDwOVwwiGAj+S2N/8sgolA==" && \
@@ -705,12 +680,6 @@ RUN test "$(npm view "opencode-claude-auth@${CLAUDE_AUTH_PLUGIN_VERSION}" dist.i
     test "$(node -p 'require(process.argv[1]).version' "${CLAUDE_AUTH_DIR}/package.json")" = \
       "${CLAUDE_AUTH_PLUGIN_VERSION}" && \
     rm -rf /root/.npm
-RUN find /usr/local/lib/node_modules/paperclipai/node_modules/@embedded-postgres \
-      -path '*/native/lib' -type d -exec sh -c '\
-        for lib_dir do \
-          [ -f "$lib_dir/libcrypto.so.1.1" ] && ln -sf libcrypto.so.1.1 "$lib_dir/libcrypto.so.1"; \
-          [ -f "$lib_dir/libssl.so.1.1" ] && ln -sf libssl.so.1.1 "$lib_dir/libssl.so.1"; \
-        done' sh {} +
 # npm 12 blocks dependency lifecycle scripts unless they are explicitly reviewed.
 # Allow only the exact OpenCode, Claude, and architecture-specific embedded
 # PostgreSQL scripts required at runtime; validate every allowed and blocked pin.
@@ -723,12 +692,6 @@ RUN python3 /usr/local/bin/validate-npm-script-policy \
       --target-arch "${TARGETARCH}" && \
     (cd /usr/local/lib/node_modules/@opencode/cli && node ./postinstall.mjs) && \
     (cd /usr/local/lib/node_modules/@anthropic-ai/claude-code && node install.cjs) && \
-    POSTGRES_PACKAGE=$(find /usr/local/lib/node_modules/paperclipai/node_modules/@embedded-postgres \
-      -mindepth 1 -maxdepth 1 -type d -name 'linux-*' -print -quit) && \
-    test -n "$POSTGRES_PACKAGE" && \
-    (cd "$POSTGRES_PACKAGE" && node scripts/hydrate-symlinks.js) && \
-    node -e 'const fs=require("fs"); const path=require("path"); const root=process.argv[1]; const links=JSON.parse(fs.readFileSync(path.join(root,"native/pg-symlinks.json"),"utf8")); for (const {source,target} of links) { const sourcePath=path.join(root,source); const targetPath=path.join(root,target); if (!fs.lstatSync(targetPath).isSymbolicLink() || fs.realpathSync(targetPath)!==fs.realpathSync(sourcePath)) throw new Error(`invalid PostgreSQL link: ${target}`); }' \
-      "$POSTGRES_PACKAGE" && \
     # OpenCode v2 prints "opencode v<version>"; match the version substring.
     opencode --version | grep -F "${OPENCODE_VERSION}" && \
     claude --version | grep -F "${CLAUDE_CODE_VERSION}" && \
@@ -739,7 +702,6 @@ RUN python3 /usr/local/bin/validate-npm-script-policy \
     ! command -v lhci && ! command -v netlify && ! command -v serve && \
     WORKERD_BIN=$(find /usr/local/lib/node_modules/wrangler -path '*/workerd/bin/workerd' -type f -print -quit) && \
     test -n "${WORKERD_BIN}" && "${WORKERD_BIN}" --version >/dev/null && \
-    node -e 'const ssh2=require("/usr/local/lib/node_modules/paperclipai/node_modules/ssh2"); if(typeof ssh2.Client!=="function") process.exit(1)' && \
     rm -rf /root/.npm
 
 RUN mkdir -p /usr/local/share/holycode/python-seed && \
@@ -770,9 +732,6 @@ COPY s6-overlay/s6-rc.d/xvfb/run /etc/s6-overlay/s6-rc.d/xvfb/run
 RUN chmod +x /etc/s6-overlay/s6-rc.d/xvfb/run && \
     touch /etc/s6-overlay/user-bundles.d/user/contents.d/xvfb
 
-COPY s6-overlay/s6-rc.d/paperclip/type /etc/s6-overlay/s6-rc.d/paperclip/type
-COPY s6-overlay/s6-rc.d/paperclip/run /etc/s6-overlay/s6-rc.d/paperclip/run
-RUN chmod +x /etc/s6-overlay/s6-rc.d/paperclip/run
 
 # ---------- Working directory ----------
 WORKDIR /workspace

@@ -12,7 +12,6 @@ services:
       - seccomp=./config/chromium-seccomp.json
     ports:
       - "4096:4096"
-      # - "3100:3100"   # Paperclip dashboard
     volumes:
       - ./data/opencode:/home/opencode
       - ./local-cache/opencode:/home/opencode/.cache/opencode
@@ -21,8 +20,3 @@ services:
       - PUID=1000
       - PGID=1000
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      # - ENABLE_PAPERCLIP=true
-      # - PAPERCLIP_PORT=3100
-      # - PAPERCLIP_DEPLOYMENT_MODE=authenticated
-      # - PAPERCLIP_BIND=lan
-      # - PAPERCLIP_ALLOWED_HOSTNAMES=192.168.1.50,my-host.local

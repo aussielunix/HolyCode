@@ -81,7 +81,6 @@
         "node",
         "@opencode/cli",
         "opencode-claude-auth",
-        "paperclipai",
         "typescript"
       ],
       "dependencyDashboardApproval": true

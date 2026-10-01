@@ -10,7 +10,6 @@ image_label() {
 
 expected_opencode="$(image_label io.holycode.version.opencode)"
 expected_claude="$(image_label io.holycode.version.claude-code)"
-expected_paperclip="$(image_label io.holycode.version.paperclip)"
 expected_openspec="$(image_label io.holycode.version.openspec)"
 expected_claude_auth="$(image_label io.holycode.version.claude-auth-plugin)"
 expected_npm="$(image_label io.holycode.version.npm)"
@@ -56,7 +55,6 @@ fi
 docker run --rm -i --network none --security-opt "seccomp=$seccomp_profile" --entrypoint sh \
   -e EXPECTED_OPENCODE="$expected_opencode" \
   -e EXPECTED_CLAUDE="$expected_claude" \
-  -e EXPECTED_PAPERCLIP="$expected_paperclip" \
   -e EXPECTED_OPENSPEC="$expected_openspec" \
   -e EXPECTED_CLAUDE_AUTH="$expected_claude_auth" \
   -e EXPECTED_NPM="$expected_npm" \
@@ -163,112 +161,12 @@ EOF
   gh --version | grep -F "gh version $EXPECTED_GITHUB_CLI"
   ! dpkg-query -W gh >/dev/null 2>&1
 
-  test -f /usr/local/lib/node_modules/paperclipai/package.json
   test -f /usr/local/share/holycode/plugins/opencode-claude-auth/package.json
   test -r /usr/local/share/holycode/THIRD-PARTY-NOTICES && test -s /usr/local/share/holycode/THIRD-PARTY-NOTICES
   test -r /usr/local/lib/node_modules/@anthropic-ai/claude-code/LICENSE.md && test -s /usr/local/lib/node_modules/@anthropic-ai/claude-code/LICENSE.md
   test -r /usr/local/lib/node_modules/pm2/GNU-AGPL-3.0.txt && test -s /usr/local/lib/node_modules/pm2/GNU-AGPL-3.0.txt
   test ! -e /root/.npm
   node -e "console.log(require(\"/usr/local/share/holycode/plugins/opencode-claude-auth/package.json\").version)" | grep -Fx "$EXPECTED_CLAUDE_AUTH"
-  test -f /usr/local/lib/node_modules/paperclipai/node_modules/@paperclipai/skills-catalog/generated/catalog.json
-  paperclip_catalog=/usr/local/lib/node_modules/paperclipai/node_modules/@paperclipai/skills-catalog/generated/catalog.json
-  validate_paperclip_catalog() {
-    node --input-type=module - "$1" <<'PAPERCLIP_CATALOG_NODE'
-import { createHash } from "node:crypto";
-import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
-import { dirname, resolve, sep } from "node:path";
-
-const catalogPath = realpathSync(process.argv[2]);
-const root = realpathSync(resolve(dirname(catalogPath), ".."));
-const catalog = JSON.parse(readFileSync(catalogPath, "utf8"));
-if (catalog.packageName !== "@paperclipai/skills-catalog" || catalog.schemaVersion !== 1 || !Array.isArray(catalog.skills) || catalog.skills.length === 0) process.exit(1);
-const allowedTrustLevels = new Set(["markdown_only", "assets", "scripts_executables"]);
-const allowedFileKinds = new Set(["skill", "markdown", "reference", "script", "asset", "other"]);
-let localSkills = 0;
-let remoteSkills = 0;
-let localFiles = 0;
-let remoteFiles = 0;
-for (const skill of catalog.skills) {
-  if (!allowedTrustLevels.has(skill.trustLevel) || !Array.isArray(skill.files) || skill.files.length === 0) process.exit(1);
-  const derivedTrustLevel = skill.files.some((file) => file.kind === "script")
-    ? "scripts_executables"
-    : skill.files.some((file) => file.kind === "asset" || file.kind === "other") ? "assets" : "markdown_only";
-  if (skill.trustLevel !== derivedTrustLevel) process.exit(1);
-  const hashInput = skill.files.map((file) => ({ path: file.path, sha256: file.sha256 }));
-  if (skill.contentHash !== `sha256:${createHash("sha256").update(JSON.stringify(hashInput)).digest("hex")}`) process.exit(1);
-  const lexicalSkillRoot = resolve(root, skill.path);
-  if (!lexicalSkillRoot.startsWith(`${root}${sep}`)) process.exit(1);
-  if (skill.source) {
-    remoteSkills += 1;
-    const source = skill.source;
-    if (skill.id !== "paperclipai:optional:research:last30days" || skill.kind !== "optional" || source.type !== "github" || source.hostname !== "github.com" || !/^[0-9a-f]{40}$/.test(source.commit) || source.commit !== "daca71f89eb71d0d56d01a43ed7627aa919dba4f" || source.url !== `https://${source.hostname}/${source.owner}/${source.repo}/tree/${source.ref}/${source.path}`) process.exit(1);
-    const descriptorPath = resolve(lexicalSkillRoot, "catalog-ref.json");
-    if (lstatSync(descriptorPath).isSymbolicLink()) process.exit(1);
-    const resolvedDescriptorPath = realpathSync(descriptorPath);
-    if (!resolvedDescriptorPath.startsWith(`${root}${sep}`)) process.exit(1);
-    const descriptor = JSON.parse(readFileSync(resolvedDescriptorPath, "utf8"));
-    for (const key of ["type", "hostname", "owner", "repo", "ref", "commit", "path"]) {
-      if (descriptor.source?.[key] !== source[key]) process.exit(1);
-    }
-    if (descriptor.defaultInstall !== skill.defaultInstall || JSON.stringify(descriptor.recommendedForRoles) !== JSON.stringify(skill.recommendedForRoles) || JSON.stringify(descriptor.requires) !== JSON.stringify(skill.requires) || JSON.stringify(descriptor.tags) !== JSON.stringify(skill.tags)) process.exit(1);
-    for (const file of skill.files) {
-      const lexicalPath = resolve(lexicalSkillRoot, file.path);
-      if (!lexicalPath.startsWith(`${lexicalSkillRoot}${sep}`) || !allowedFileKinds.has(file.kind) || !Number.isInteger(file.sizeBytes) || file.sizeBytes <= 0 || !/^[0-9a-f]{64}$/.test(file.sha256)) process.exit(1);
-      remoteFiles += 1;
-    }
-    continue;
-  }
-  localSkills += 1;
-  const skillRoot = realpathSync(lexicalSkillRoot);
-  if (!skillRoot.startsWith(`${root}${sep}`)) process.exit(1);
-  for (const file of skill.files) {
-    const lexicalPath = resolve(skillRoot, file.path);
-    if (!lexicalPath.startsWith(`${skillRoot}${sep}`) || !allowedFileKinds.has(file.kind)) process.exit(1);
-    if (lstatSync(lexicalPath).isSymbolicLink()) process.exit(1);
-    const filePath = realpathSync(lexicalPath);
-    if (!filePath.startsWith(`${root}${sep}`) || !Number.isInteger(file.sizeBytes) || file.sizeBytes <= 0 || !/^[0-9a-f]{64}$/.test(file.sha256) || statSync(filePath).size !== file.sizeBytes || createHash("sha256").update(readFileSync(filePath)).digest("hex") !== file.sha256) process.exit(1);
-    localFiles += 1;
-  }
-}
-if (localSkills !== 16 || remoteSkills !== 1 || localFiles !== 27 || remoteFiles !== 79) process.exit(1);
-PAPERCLIP_CATALOG_NODE
-  }
-  validate_paperclip_catalog "$paperclip_catalog"
-  paperclip_remote_fixture="$(mktemp -d)"
-  paperclip_catalog_root="$(dirname "$(dirname "$paperclip_catalog")")"
-  cp -a "$paperclip_catalog_root/." "$paperclip_remote_fixture/"
-  node --input-type=module - "$paperclip_remote_fixture/generated/catalog.json" <<'PAPERCLIP_TRUNCATE_NODE'
-import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
-
-const path = process.argv[2];
-const catalog = JSON.parse(readFileSync(path, "utf8"));
-const remote = catalog.skills.find((skill) => skill.source);
-if (!remote || remote.files.length !== 79) process.exit(1);
-remote.files = remote.files.slice(0, -1);
-const hashInput = remote.files.map((file) => ({ path: file.path, sha256: file.sha256 }));
-remote.contentHash = `sha256:${createHash("sha256").update(JSON.stringify(hashInput)).digest("hex")}`;
-writeFileSync(path, `${JSON.stringify(catalog)}\n`);
-PAPERCLIP_TRUNCATE_NODE
-  if validate_paperclip_catalog "$paperclip_remote_fixture/generated/catalog.json"; then
-    echo "truncated remote catalog metadata was accepted" >&2
-    exit 1
-  fi
-  rm -rf "$paperclip_remote_fixture"
-  paperclip_catalog_fixture="$(mktemp -d)"
-  mkdir -p "$paperclip_catalog_fixture/generated" "$paperclip_catalog_fixture/catalog/escape"
-  ln -s /etc/passwd "$paperclip_catalog_fixture/catalog/escape/SKILL.md"
-  cat > "$paperclip_catalog_fixture/generated/catalog.json" <<'EOF'
-{"schemaVersion":1,"packageName":"@paperclipai/skills-catalog","skills":[{"path":"catalog/escape","trustLevel":"markdown_only","contentHash":"sha256:17edc42a4aa96e4e494305942ed692843032d969fef532853deef8209f819711","files":[{"path":"SKILL.md","kind":"skill","sizeBytes":1,"sha256":"0000000000000000000000000000000000000000000000000000000000000000"}]}]}
-EOF
-  if validate_paperclip_catalog "$paperclip_catalog_fixture/generated/catalog.json"; then
-    echo "catalog symlink escape was accepted" >&2
-    exit 1
-  fi
-  rm -rf "$paperclip_catalog_fixture"
-  (cd /usr/local/lib/node_modules/paperclipai && npm ls @paperclipai/skills-catalog --all >/dev/null)
-  node -e "console.log(require(\"/usr/local/lib/node_modules/paperclipai/package.json\").version)" | grep -Fx "$EXPECTED_PAPERCLIP"
-  (cd /usr/local/lib/node_modules/paperclipai && npm ls undici --all >/dev/null)
   test -f /etc/s6-overlay/user-bundles.d/user/contents.d/opencode
   test -f /etc/s6-overlay/user-bundles.d/user/contents.d/xvfb
   test ! -e /etc/s6-overlay/s6-rc.d/user/contents.d/opencode
@@ -828,7 +726,6 @@ done
 test "$cliproxy_mock_ready" = true
 docker run -d --name "$cliproxy_candidate" --network "$cliproxy_network" \
   -v "$cliproxy_home:/home/opencode" \
-  -e ENABLE_PAPERCLIP=false \
   -e CLIPROXYAPI_ENABLED=true \
   -e CLIPROXYAPI_BASE_URL="http://$cliproxy_mock:8317/v1" \
   "$image" >/dev/null

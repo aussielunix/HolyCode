@@ -28,6 +28,8 @@ This fork publishes to GitHub Container Registry only (`ghcr.io/aussielunix/holy
 | Drizzle ORM fixture | 0.45.2 | 0.45.3 | Test-fixture update only; it does not add a new top-level image dependency. [Registry](https://registry.npmjs.org/drizzle-orm/0.45.3) |
 | Renovate validator | 44.97.6 | 44.112.3 | CI-only exact version; it is not bundled in the runtime image. [Registry](https://registry.npmjs.org/renovate/44.112.3) |
 
+Paperclip is no longer bundled in this fork; its skill catalogue, embedded PostgreSQL, Cursor adapter, and upgrade/rollback gate are removed.
+
 ## Direct image tools
 
 These are the direct versioned tools and runtimes selected by the Dockerfile. `Current` means the reviewed stable selection did not change in v1.2.4; it does not promise that a mutable registry tag will never move.
@@ -40,7 +42,6 @@ These are the direct versioned tools and runtimes selected by the Dockerfile. `C
 | GitHub CLI | 2.101.0 | Current, unchanged |
 | OpenCode | 2.0.18 | Updated; package moved to `@opencode/cli` |
 | Claude Code | 2.1.281 | Updated |
-| Paperclip | 2026.831.1 | Compatibility hold; details below |
 | OpenSpec | 1.13.2 | Updated |
 | `opencode-claude-auth` | 2.2.1 | Updated without an issue #11 fix claim |
 | TypeScript | 6.0.3 | Compatibility hold; details below |
@@ -80,8 +81,6 @@ These versions are not independent top-level tool claims. Each stays inside the 
 | npm 12.1.0 | `tar` 7.5.22 | Existing raw replacement retained |
 | npm 12.1.0 / socks | `ip-address` 10.7.2 | Existing raw npm payload retained inside the accepted owner range |
 | PM2 7.0.4 | `js-yaml` 4.3.2 | Existing v4-compatible raw replacement retained; 5.x remains a major-boundary hold |
-| Paperclip 2026.831.1 | Undici 6.28.1 | Existing owner-compatible replacement retained; 8.x crosses two majors |
-| Paperclip 2026.831.1 | embedded PostgreSQL 18.1.0-beta.16 native packages | Existing architecture-specific lifecycle entries retained |
 | Prisma 7.10.0 | deepmerge-ts 8.0.2, mysql2 3.24.4 | Existing owner-scoped replacements retained |
 | Prisma / mysql2 | `@types/node` 20.19.43, `undici-types` 6.21.0 | Existing type-only peer and declaration payloads retained |
 | Wrangler 4.138.0 | Miniflare 5.20260921.1-alpha, workerd 1.20260921.1 | Exact versions declared by Wrangler; workerd is not an independent latest pin |
@@ -95,25 +94,21 @@ Drizzle ORM 0.45.3 is a fixture-only compatibility dependency. It verifies the g
 
 The complete global npm diagnostic remains bounded to two accepted owner findings. Lighthouse 13.5.0 owns `@paulirish/trace_engine 0.0.65`, whose literal latest declarations resolve to `third-party-web 0.30.0` and `legacy-javascript 0.0.1`. Missing peers or any changed or additional finding fail the smoke. This is not a universal clean-tree claim.
 
-Paperclip's packaged catalog remains package data. The held package contains 16 local entries with 27 verified local files plus one optional pinned remote descriptor with 79 metadata records. HolyCode does not materialize those remote records in user-managed configuration during image smoke.
 
 ## Compatibility holds and unresolved items
 
 | Component | Retained | Evaluated alternative | Why it remains held | Unlock condition |
 | --- | ---: | ---: | --- | --- |
-| Paperclip | 2026.831.1 | 2026.916.1 | The latest patch changes task-conversation messaging, not the 2026.916.0 native-runner default. The candidate enables the runner by default for explicitly configured agents, and no supported narrow self-hosted control preserves explicit user choices. | Upstream-supported self-hosted default control plus preserved explicit settings and fresh, upgrade, and native validation |
 | TypeScript | 6.0.3 | 7.0.2 | TypeScript 7 removes the current programmatic API and replaces the tsserver interface. | Deliberate API/LSP or side-by-side design plus compiler import, `tsc`, and editor/server fixtures |
 | Prisma | 7.10.0 | 8.0.0-rc.15 | Direct release candidate excluded. | Stable compatible 8.x plus database, client, migration, and owner-scoped replacement fixtures |
 | json-server | 0.17.4 | 1.0.0-beta.15 | Direct beta excluded. | Stable 1.x plus CLI and CRUD fixtures |
 | PM2-owned js-yaml | 4.3.2 | 5.4.2 | Owner declares v4; replacing it crosses a major. | Owner/API checks and PM2 YAML fixture |
-| Paperclip-owned Undici | 6.28.1 | 8.10.2 | Replacement crosses two majors beyond the held Paperclip graph. | Owner, streaming, error, and request fixtures |
 | Python lock graph | v1.2.2 direct and transitive locks | New resolver output | The upstream pip-tools header correction is not released. | Released upstream fix plus clean supported Linux regeneration and consumer validation |
 
 `opencode-claude-auth 2.2.1` is selected, but issue [#11](https://github.com/CoderLuii/HolyCode/issues/11) remains open. The release note for 2.2.1 does not establish a correction for the reported proactive refresh and expired-credential failure. Running `claude` or signing in again remains a workaround, not proof that the race is fixed.
 
 Claude Code synthetic-auth startup and marketplace/path-containment regression coverage are required release gates through `scripts/smoke_image.sh`; no live account, provider, OAuth, or billing claim follows from those fixtures.
 
-Paperclip 2026.831.1 is unchanged from v1.2.2, so v1.2.4 adds no Paperclip migration, announcements override, managed-mode switch, or native-runner default override. Untouched v1.2.2 volume backups remain the rollback boundary.
 
 ## CLIProxyAPI model discovery
 
