@@ -275,19 +275,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN printf 'agent1:100000:65536\n' > /etc/subuid && \
     printf 'agent1:100000:65536\n' > /etc/subgid
 
-# Default to the portable 'vfs' storage driver. It needs no /dev/fuse or
-# privileged overlay mount, so it works on a microVM guest kernel (libkrunfw)
-# that enables user namespaces. Switch to 'fuse-overlayfs' or 'overlay' (both
-# enabled by that kernel) for speed once verified in the target microVM.
+# Container storage lives under the app user's home (agent1). The Smolfile
+# bind-mounts a persistent host dir over /home/agent1/.local/share/containers so
+# nested container layers survive reboots; the transient VM rootfs is unsuitable.
+# Per smol-machines guidance this uses /dev/fuse (fuse-overlayfs) for rootless ops.
 RUN mkdir -p /etc/containers /etc/containers/registries.conf.d && \
-    printf '[storage]\ndriver = "vfs"\n' > /etc/containers/storage.conf
-RUN printf 'export XDG_RUNTIME_DIR=/run/user/$(id -u)\n' > /etc/profile.d/agent1-podman.sh && \
-    printf '\nexport XDG_RUNTIME_DIR=/run/user/$(id -u)\n' >> /home/agent1/.bashrc && \
-    printf '\nexport XDG_RUNTIME_DIR=/run/user/$(id -u)\n' >> /home/agent1/.profile && \
-    chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile
+    printf '[storage]\ndriver = "overlay2"\nrunroot = "/home/agent1/.run/containers"\ngraphroot = "/home/agent1/.local/share/containers/storage"\n[storage.options.overlay]\nmount_program = "/usr/bin/fuse-overlayfs"\n' > /etc/containers/storage.conf
 
-# /run is tmpfs and cleared at boot; the entrypoint (re)creates the runtime dir.
-RUN mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000
+# Rootless Podman runtime dir lives under the app user's home (user-writable,
+# persistent) instead of tmpfs /run/user, which smolvm may not populate.
+RUN printf 'export XDG_RUNTIME_DIR="$HOME/.run"\nmkdir -p "$HOME/.run"\nchmod 0700 "$HOME/.run"\n' > /etc/profile.d/agent1-podman.sh && \
+    printf '\nexport XDG_RUNTIME_DIR="$HOME/.run"\nmkdir -p "$HOME/.run"\nchmod 0700 "$HOME/.run"\n' >> /home/agent1/.bashrc && \
+    printf '\nexport XDG_RUNTIME_DIR="$HOME/.run"\nmkdir -p "$HOME/.run"\nchmod 0700 "$HOME/.run"\n' >> /home/agent1/.profile && \
+    chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile
 
 # ==============================================================================
 # TOOL SECTIONS - Edit these to customize your image

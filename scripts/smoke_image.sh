@@ -163,8 +163,11 @@ EOF
   gh --version | grep -F "gh version $EXPECTED_GITHUB_CLI"
   goose --version | grep -F "$EXPECTED_GOOSE"
   podman --version | grep -F "podman version"
-  mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000
-  runuser -u agent1 -- env XDG_RUNTIME_DIR=/run/user/1000 podman info >/dev/null
+  mkdir -p /dev /home/agent1/.run /home/agent1/.local/share/containers/storage
+  chown 1000:1000 /home/agent1/.run /home/agent1/.local/share/containers
+  [ -e /dev/fuse ] || mknod /dev/fuse c 10 229 2>/dev/null || true
+  chmod 666 /dev/fuse 2>/dev/null || true
+  runuser -u agent1 -- env XDG_RUNTIME_DIR=/home/agent1/.run podman info >/dev/null
   ! dpkg-query -W gh >/dev/null 2>&1
 
   test -f /usr/local/share/holycode/plugins/opencode-claude-auth/package.json
