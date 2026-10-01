@@ -16,10 +16,10 @@ services:
 
     volumes:
       # --- Persistent state (all OpenCode data under home dir) ---
-      - ./data/opencode:/home/opencode # Config, sessions, plugins, all XDG paths
+      - ./data/agent1:/home/agent1 # Config, sessions, plugins, all XDG paths
 
       # --- Cache path (keep this on local disk; if this folder lives on NAS/CIFS, replace with an absolute local path) ---
-      - ./local-cache/opencode:/home/opencode/.cache/opencode
+      - ./local-cache/agent1:/home/agent1/.cache/opencode
 
       # --- Workspace ---
       - ./workspace:/workspace # Your project files
@@ -65,7 +65,7 @@ services:
       # - OPENCODE_SERVER_USERNAME=opencode
 
       # --- Claude Auth (use Claude subscription instead of API key) ---
-      # Reads credentials from ./data/opencode/.claude/.credentials.json
+      # Reads credentials from ./data/agent1/.claude/.credentials.json
       # NOTE: May violate Anthropic TOS. Use at your own risk.
       # Toggle on/off with docker compose down && up -d
       # - ENABLE_CLAUDE_AUTH=true

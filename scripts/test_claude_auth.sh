@@ -22,28 +22,28 @@ docker volume create "$volume" >/dev/null
 docker run --rm --entrypoint sh \
   -v "$credentials:/source/credentials.json:ro" \
   -v "$settings:/source/claude.json:ro" \
-  -v "$volume:/home/opencode" \
+  -v "$volume:/home/agent1" \
   "$image" -lc '
-    mkdir -p /home/opencode/.claude
-    cp /source/credentials.json /home/opencode/.claude/.credentials.json
-    cp /source/claude.json /home/opencode/.claude.json
-    chown -R opencode:opencode /home/opencode/.claude /home/opencode/.claude.json
-    sha256sum /home/opencode/.claude/.credentials.json /home/opencode/.claude.json > /home/opencode/.claude-auth-before
+    mkdir -p /home/agent1/.claude
+    cp /source/credentials.json /home/agent1/.claude/.credentials.json
+    cp /source/claude.json /home/agent1/.claude.json
+    chown -R agent1:agent1 /home/agent1/.claude /home/agent1/.claude.json
+    sha256sum /home/agent1/.claude/.credentials.json /home/agent1/.claude.json > /home/agent1/.claude-auth-before
   '
 
 for _ in 1 2; do
   docker run --rm --entrypoint sh \
-    -v "$volume:/home/opencode" \
+    -v "$volume:/home/agent1" \
     "$image" -lc '
-      runuser -u opencode -- claude auth status --json |
+      runuser -u agent1 -- claude auth status --json |
         jq -e ".loggedIn == true and (.authMethod | length > 0)" >/dev/null
     '
 done
 
 docker run --rm --entrypoint sh \
-  -v "$volume:/home/opencode" \
+  -v "$volume:/home/agent1" \
   "$image" -lc '
-    sha256sum --check --status /home/opencode/.claude-auth-before
+    sha256sum --check --status /home/agent1/.claude-auth-before
   '
 
 echo "Claude authentication and recreation persistence passed"

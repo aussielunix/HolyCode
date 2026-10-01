@@ -904,7 +904,7 @@ class ReleaseContractTests(unittest.TestCase):
             "The bundled Hermes is temporarily unavailable in v1.1.4",
             self.entrypoint,
         )
-        self.assertIn("/home/opencode/.hermes is preserved", self.entrypoint)
+        self.assertIn("/home/agent1/.hermes is preserved", self.entrypoint)
         self.assertNotIn("contents.d/hermes", self.entrypoint)
 
     def test_chromium_sandbox_is_required(self):

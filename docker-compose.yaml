@@ -13,8 +13,8 @@ services:
     ports:
       - "4096:4096"
     volumes:
-      - ./data/opencode:/home/opencode
-      - ./local-cache/opencode:/home/opencode/.cache/opencode
+      - ./data/agent1:/home/agent1
+      - ./local-cache/agent1:/home/agent1/.cache/opencode
       - ./workspace:/workspace
     environment:
       - PUID=1000

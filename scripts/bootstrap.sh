@@ -7,8 +7,8 @@ set -e
 # Delete ~/.config/opencode/.holycode-bootstrapped to re-trigger.
 # ==============================================================================
 
-OC_HOME="/home/opencode"
-OC_USER="opencode"
+OC_HOME="/home/agent1"
+OC_USER="agent1"
 PUID="${PUID:-1000}"
 PGID="${PGID:-1000}"
 SOURCE_DIR="/usr/local/share/holycode"

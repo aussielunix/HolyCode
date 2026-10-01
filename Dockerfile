@@ -256,12 +256,38 @@ RUN S6_ARCH=$(case "$TARGETARCH" in arm64) echo "aarch64";; *) echo "x86_64";; e
 RUN apt-get update && apt-get install -y --no-install-recommends locales sudo && rm -rf /var/lib/apt/lists/* && \
     sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
-# ---------- Rename node user to opencode ----------
-# The Node slim base already has UID 1000 as 'node', rename it to 'opencode'
-RUN usermod -l opencode -d /home/opencode -m node && \
-    groupmod -n opencode node && \
-    echo "opencode ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/opencode && \
-    chmod 0440 /etc/sudoers.d/opencode
+# ---------- Rename node user to agent1 ----------
+# The Node slim base already has UID 1000 as 'node', rename it to 'agent1'
+RUN usermod -l agent1 -d /home/agent1 -m node && \
+    groupmod -n agent1 node && \
+    echo "agent1 ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/agent1 && \
+    chmod 0440 /etc/sudoers.d/agent1
+
+# ---------- Rootless Podman (agent1 sandbox / smolvm microVM) ----------
+# Required for rootless container runs as the 1000:1000 agent1 user.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      podman fuse-overlayfs slirp4netns uidmap passt \
+    && rm -rf /var/lib/apt/lists/* \
+    && podman --version
+
+# Rootless Podman needs a per-user subordinate UID/GID range so agent1 can map
+# container users. Range 100000-165535 is non-overlapping with the host UIDs.
+RUN printf 'agent1:100000:65536\n' > /etc/subuid && \
+    printf 'agent1:100000:65536\n' > /etc/subgid
+
+# Default to the portable 'vfs' storage driver. It needs no /dev/fuse or
+# privileged overlay mount, so it works on a microVM guest kernel (libkrunfw)
+# that enables user namespaces. Switch to 'fuse-overlayfs' or 'overlay' (both
+# enabled by that kernel) for speed once verified in the target microVM.
+RUN mkdir -p /etc/containers /etc/containers/registries.conf.d && \
+    printf '[storage]\ndriver = "vfs"\n' > /etc/containers/storage.conf
+RUN printf 'export XDG_RUNTIME_DIR=/run/user/$(id -u)\n' > /etc/profile.d/agent1-podman.sh && \
+    printf '\nexport XDG_RUNTIME_DIR=/run/user/$(id -u)\n' >> /home/agent1/.bashrc && \
+    printf '\nexport XDG_RUNTIME_DIR=/run/user/$(id -u)\n' >> /home/agent1/.profile && \
+    chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile
+
+# /run is tmpfs and cleared at boot; the entrypoint (re)creates the runtime dir.
+RUN mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000
 
 # ==============================================================================
 # TOOL SECTIONS - Edit these to customize your image
@@ -457,7 +483,7 @@ RUN test "$(npm view "ip-address@${NPM_IP_ADDRESS_VERSION}" dist.integrity)" = \
 RUN npm i -g --ignore-scripts "@opencode/cli@${OPENCODE_VERSION}" "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
       "@fission-ai/openspec@${OPENSPEC_VERSION}" && \
     rm -rf /root/.npm
-ENV PATH="/home/opencode/.local/bin:${PATH}"
+ENV PATH="/home/agent1/.local/bin:${PATH}"
 
 # Drizzle Kit's stable release still declares an unused legacy loader and older
 # nested esbuild; remove both in the install layer and use the audited global pin.

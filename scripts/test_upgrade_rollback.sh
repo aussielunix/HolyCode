@@ -100,7 +100,7 @@ start_stack() {
   local enable_hermes="$5"
 
   docker run -d --platform "$platform" --name "$name" \
-    -v "$home_volume:/home/opencode" \
+    -v "$home_volume:/home/agent1" \
     -v "$workspace_volume:/workspace" \
     -e PUID=2345 \
     -e PGID=2345 \
@@ -1229,11 +1229,11 @@ assert_persisted_state() {
   local name="$1"
   local phase="$2"
 
-  docker exec "$name" test -f /home/opencode/.claude/holycode-upgrade-auth-marker
-  docker exec "$name" test -f /home/opencode/.hermes/holycode-upgrade-marker
-  docker exec "$name" test -f /home/opencode/.paperclip/instances/default/data/holycode-upgrade-marker
+  docker exec "$name" test -f /home/agent1/.claude/holycode-upgrade-auth-marker
+  docker exec "$name" test -f /home/agent1/.hermes/holycode-upgrade-marker
+  docker exec "$name" test -f /home/agent1/.paperclip/instances/default/data/holycode-upgrade-marker
   docker exec "$name" test -f /workspace/holycode-upgrade-marker
-  docker exec "$name" grep -Fq 'holycode-upgrade-model' /home/opencode/.config/opencode/opencode.json
+  docker exec "$name" grep -Fq 'holycode-upgrade-model' /home/agent1/.config/opencode/opencode.json
   [ "$(docker exec "$name" stat -c %u /workspace/holycode-upgrade-marker)" = "2345" ]
 
   api_get "$name" "/api/companies/${company_id}" |
@@ -1262,11 +1262,11 @@ docker volume create "$baseline_workspace" >/dev/null
 initialize_openspec_fixture "$baseline_workspace"
 start_stack "$baseline_name" "$previous_image" "$baseline_home" "$baseline_workspace" false
 seed_paperclip_state "$baseline_name"
-docker exec -u opencode "$baseline_name" sh -lc '
-  mkdir -p /home/opencode/.claude /home/opencode/.hermes
-  touch /home/opencode/.claude/holycode-upgrade-auth-marker
-  touch /home/opencode/.hermes/holycode-upgrade-marker
-  touch /home/opencode/.paperclip/instances/default/data/holycode-upgrade-marker
+docker exec -u agent1 "$baseline_name" sh -lc '
+  mkdir -p /home/agent1/.claude /home/agent1/.hermes
+  touch /home/agent1/.claude/holycode-upgrade-auth-marker
+  touch /home/agent1/.hermes/holycode-upgrade-marker
+  touch /home/agent1/.paperclip/instances/default/data/holycode-upgrade-marker
   touch /workspace/holycode-upgrade-marker
 '
 assert_persisted_state "$baseline_name" baseline

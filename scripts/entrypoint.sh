@@ -7,8 +7,8 @@ set -e
 #          s6-overlay handoff
 # ==============================================================================
 
-OC_USER="opencode"
-OC_HOME="/home/opencode"
+OC_USER="agent1"
+OC_HOME="/home/agent1"
 WORKSPACE_DIR="/workspace"
 CLAUDE_AUTH_PLUGIN_NAME="opencode-claude-auth"
 CLAUDE_AUTH_PLUGIN_VERSION="2.2.1"
@@ -286,17 +286,26 @@ CURRENT_UID=$(id -u "$OC_USER")
 CURRENT_GID=$(id -g "$OC_USER")
 
 if [ "$PGID" != "$CURRENT_GID" ]; then
-    echo "[entrypoint] Changing opencode GID from $CURRENT_GID to $PGID"
-    groupmod -o -g "$PGID" opencode
+    echo "[entrypoint] Changing agent1 GID from $CURRENT_GID to $PGID"
+    groupmod -o -g "$PGID" agent1
 fi
 
 if [ "$PUID" != "$CURRENT_UID" ]; then
-    echo "[entrypoint] Changing opencode UID from $CURRENT_UID to $PUID"
-    usermod -o -u "$PUID" opencode
+    echo "[entrypoint] Changing agent1 UID from $CURRENT_UID to $PUID"
+    usermod -o -u "$PUID" agent1
 fi
 
 # ---------- Fix home directory ownership ----------
 chown "$PUID:$PGID" "$OC_HOME"
+
+# ---------- Rootless Podman runtime dir ----------
+# /run is tmpfs and is cleared every boot; recreate it for the app user so
+# rootless `podman` (run as agent1) has a writable runtime/state dir.
+if command -v podman >/dev/null 2>&1; then
+    mkdir -p "/run/user/${PUID}"
+    chown "$PUID:$PGID" "/run/user/${PUID}" 2>/dev/null || true
+    export XDG_RUNTIME_DIR="/run/user/${PUID}"
+fi
 
 # Pre-create OpenCode directories (bind mount may start empty)
 for dir in \
@@ -373,7 +382,7 @@ sync_shipped_skills
 
 if [ "${ENABLE_HERMES}" = "true" ]; then
     echo "[entrypoint] ERROR: The bundled Hermes is temporarily unavailable." >&2
-    echo "[entrypoint] Your /home/opencode/.hermes is preserved. Remove ENABLE_HERMES=true to start HolyCode, or run Hermes separately until bundling returns." >&2
+    echo "[entrypoint] Your /home/agent1/.hermes is preserved. Remove ENABLE_HERMES=true to start HolyCode, or run Hermes separately until bundling returns." >&2
     exit 1
 fi
 
