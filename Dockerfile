@@ -277,7 +277,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Convenience entry to start dockerd against the /storage ext4 disk. On the
 # managed/cloud path each exec runs in its own mount namespace, so point dockerd
 # directly at /storage (no bind-mount dependency).
-RUN printf '#!/bin/sh\nset -e\nmkdir -p /storage/docker\nrm -f /var/run/docker.pid\n# start daemon detached; nohup keeps it alive past the wrapper shell\nnohup dockerd --data-root=/storage/docker --storage-driver=overlay2 >/tmp/dockerd.log 2>&1 &\nfor i in $(seq 1 30); do docker info >/dev/null 2>&1 && break; sleep 1; done\n# agent1 runs with only its primary gid (1000), so make the socket world-\n# accessible: in this single-user microVM the unix socket is the trust \n# boundary, and this avoids a root-only docker.sock group problem.\nchmod 0666 /var/run/docker.sock 2>/dev/null || true\ndocker info\n' > /usr/local/bin/start-dockerd && chmod +x /usr/local/bin/start-dockerd
+RUN printf '#!/bin/sh\nset -e\nif docker info >/dev/null 2>&1; then exit 0; fi\nmkdir -p /storage/docker\nrm -f /var/run/docker.pid\n# start daemon detached; nohup keeps it alive past the wrapper shell\nnohup dockerd --data-root=/storage/docker --storage-driver=overlay2 >/tmp/dockerd.log 2>&1 &\nfor i in $(seq 1 30); do docker info >/dev/null 2>&1 && break; sleep 1; done\n# agent1 runs with only its primary gid (1000), so make the socket world-\n# accessible: in this single-user microVM the unix socket is the trust \n# boundary, and this avoids a root-only docker.sock group problem.\nchmod 0666 /var/run/docker.sock 2>/dev/null || true\ndocker info\n' > /usr/local/bin/start-dockerd && chmod +x /usr/local/bin/start-dockerd
+RUN printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/dev/null 2>&1 && sudo -n start-dockerd >/dev/null 2>&1\n' >> /home/agent1/.bashrc && \
+    printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/dev/null 2>&1 && sudo -n start-dockerd >/dev/null 2>&1\n' >> /home/agent1/.profile && \
+    chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile
 
 # ==============================================================================
 # TOOL SECTIONS - Edit these to customize your image
