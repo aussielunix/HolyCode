@@ -260,11 +260,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends locales sudo &&
 # ---------- Rename node user to agent1 ----------
 # The Node slim base already has UID 1000 as 'node', rename it to 'agent1'
 RUN usermod -l agent1 -d /home/agent1 -m node && \
-    usermod -s /bin/bash agent1 && \
     groupmod -n agent1 node && \
     echo "agent1 ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/agent1 && \
-    chmod 0440 /etc/sudoers.d/agent1 && \
-    test -x /bin/bash
+    chmod 0440 /etc/sudoers.d/agent1
 
 # ---------- Docker Engine (dockerd + CLI) for smolvm Docker-in-a-machine ----------
 # dockerd must keep its data root on the machine's /storage ext4 disk because the
@@ -292,9 +290,6 @@ RUN printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/
     printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/dev/null 2>&1 && sudo -n start-dockerd >/dev/null 2>&1\n' >> /home/agent1/.profile && \
     chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile
 
-# Make an interactive login /bin/sh session branch to bash (smolvm `machine
-# shell` opens /bin/sh, which does not honor the /etc/passwd login shell).
-RUN printf 'if [ -n "$PS1" ] && [ -x /bin/bash ] && [ -z "$BASH_VERSION" ]; then exec /bin/bash; fi\n' > /etc/profile.d/agent1-shell.sh
 
 # ==============================================================================
 # TOOL SECTIONS - Edit these to customize your image
