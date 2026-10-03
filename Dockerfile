@@ -292,6 +292,10 @@ RUN printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/
     printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/dev/null 2>&1 && sudo -n start-dockerd >/dev/null 2>&1\n' >> /home/agent1/.profile && \
     chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile
 
+# Make an interactive login /bin/sh session branch to bash (smolvm `machine
+# shell` opens /bin/sh, which does not honor the /etc/passwd login shell).
+RUN printf 'if [ -n "$PS1" ] && [ -x /bin/bash ] && [ -z "$BASH_VERSION" ]; then exec /bin/bash; fi\n' > /etc/profile.d/agent1-shell.sh
+
 # ==============================================================================
 # TOOL SECTIONS - Edit these to customize your image
 # ==============================================================================
