@@ -263,32 +263,20 @@ RUN usermod -l agent1 -d /home/agent1 -m node && \
     echo "agent1 ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/agent1 && \
     chmod 0440 /etc/sudoers.d/agent1
 
-# ---------- Rootless Podman (agent1 sandbox / smolvm microVM) ----------
-# Required for rootless container runs as the 1000:1000 agent1 user.
+# ---------- Docker Engine (dockerd + CLI) for smolvm Docker-in-a-machine ----------
+# dockerd must keep its data root on the machine's /storage ext4 disk because the
+# smolvm rootfs is an overlay and Docker's overlay2 cannot nest on it. See the
+# smol-machines docker-in-a-machine guide and the Smolfile.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      podman fuse-overlayfs slirp4netns uidmap passt \
+      docker.io docker-compose \
     && rm -rf /var/lib/apt/lists/* \
-    && podman --version
+    && usermod -aG docker agent1 \
+    && docker --version
 
-# Rootless Podman needs a per-user subordinate UID/GID range so agent1 can map
-# container users. Range 100000-165535 is non-overlapping with the host UIDs.
-RUN printf 'agent1:100000:65536\n' > /etc/subuid && \
-    printf 'agent1:100000:65536\n' > /etc/subgid
-
-# Container storage lives under the app user's home (agent1). The Smolfile
-# bind-mounts a persistent host dir over /home/agent1/.local/share/containers so
-# nested container layers survive reboots; the transient VM rootfs is unsuitable.
-# Driver is 'vfs' (no overlay mount, no /dev/fuse, works on host-dir bind mounts).
-# Switch to 'overlay2' once the microVM exposes a real ext4 persistent disk.
-RUN mkdir -p /etc/containers /etc/containers/registries.conf.d && \
-    printf '[storage]\ndriver = "vfs"\nrunroot = "/home/agent1/.run/containers"\ngraphroot = "/home/agent1/.local/share/containers/storage"\n' > /etc/containers/storage.conf
-
-# Rootless Podman runtime dir lives under the app user's home (user-writable,
-# persistent) instead of tmpfs /run/user, which smolvm may not populate.
-RUN printf 'export XDG_RUNTIME_DIR="$HOME/.run"\nmkdir -p "$HOME/.run"\nchmod 0700 "$HOME/.run"\n' > /etc/profile.d/agent1-podman.sh && \
-    printf '\nexport XDG_RUNTIME_DIR="$HOME/.run"\nmkdir -p "$HOME/.run"\nchmod 0700 "$HOME/.run"\n' >> /home/agent1/.bashrc && \
-    printf '\nexport XDG_RUNTIME_DIR="$HOME/.run"\nmkdir -p "$HOME/.run"\nchmod 0700 "$HOME/.run"\n' >> /home/agent1/.profile && \
-    chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile
+# Convenience entry to start dockerd against the /storage ext4 disk. On the
+# managed/cloud path each exec runs in its own mount namespace, so point dockerd
+# directly at /storage (no bind-mount dependency).
+RUN printf '#!/bin/sh\nset -e\nmkdir -p /storage/docker\nrm -f /var/run/docker.pid\ndockerd --data-root=/storage/docker --storage-driver=overlay2 >/tmp/dockerd.log 2>&1 &\nfor i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do docker info >/dev/null 2>&1 && exit 0; sleep 1; done\nexit 1\n' > /usr/local/bin/start-dockerd && chmod +x /usr/local/bin/start-dockerd
 
 # ==============================================================================
 # TOOL SECTIONS - Edit these to customize your image

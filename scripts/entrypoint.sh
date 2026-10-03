@@ -298,26 +298,8 @@ fi
 # ---------- Fix home directory ownership ----------
 chown "$PUID:$PGID" "$OC_HOME"
 
-# ---------- Rootless Podman runtime & storage ----------
-if command -v podman >/dev/null 2>&1; then
-    # Persistent container storage lives under the app user's home; ensure the
-    # dirs exist and are owned by the app user so rootless Podman can write to
-    # the (host-bind-mounted) storage location.
-    mkdir -p "$OC_HOME/.local/share/containers/storage"
-    chown "$PUID:$PGID" "$OC_HOME/.local/share/containers" 2>/dev/null || true
-    # /dev/fuse is required by the rootless fuse-overlayfs storage driver.
-    if [ ! -e /dev/fuse ]; then
-        mknod /dev/fuse c 10 229 2>/dev/null || true
-    fi
-    chmod 666 /dev/fuse 2>/dev/null || true
-    # Rootless Podman runtime dir lives under the app user's home (persistent and
-    # user-writable) rather than tmpfs /run/user, which smolvm may not populate.
-    export XDG_RUNTIME_DIR="$OC_HOME/.run"
-    mkdir -p "$XDG_RUNTIME_DIR"
-    chown "$PUID:$PGID" "$XDG_RUNTIME_DIR" && chmod 0700 "$XDG_RUNTIME_DIR"
-    # Sudo needs to resolve the container hostname.
-    grep -qF "$(hostname)" /etc/hosts || echo "127.0.0.1 $(hostname)" >> /etc/hosts
-fi
+# Fix sudo hostname resolution (harmless; avoids the "unable to resolve host" warning).
+grep -qF "$(hostname)" /etc/hosts || echo "127.0.0.1 $(hostname)" >> /etc/hosts
 
 # Pre-create OpenCode directories (bind mount may start empty)
 for dir in \
