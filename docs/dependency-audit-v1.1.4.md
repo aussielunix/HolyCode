@@ -62,7 +62,7 @@ pip 26.2 still vendors msgpack 1.1.2 and pkg_resources from setuptools 70.3.0. H
 
 GitHub CLI, fzf, and lazygit are built from exact upstream commits. Their reviewed module patches are committed under `patches/`, and the build verifies the patched module versions before tests and cross-compilation. s6-overlay, delta, and eza assets retain exact SHA-256 checks.
 
-The final Debian package inventory is stored at `/usr/local/share/holycode/dpkg-inventory.txt` in each image and exported with the release-validation artifacts.
+The final package inventory (rpm on the Fedora 44 base) is stored at `/usr/local/share/holycode/pkg-inventory.txt` in each image and exported with the release-validation artifacts.
 
 ## Chromium And Exceptions
 

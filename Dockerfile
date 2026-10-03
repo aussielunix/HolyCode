@@ -109,12 +109,18 @@ RUN git clone --branch "v${LAZYGIT_VERSION}" --depth 1 \
     go version -m /out/lazygit | grep -E 'golang.org/x/text[[:space:]]+v0\.41\.0' && \
     go version -m /out/lazygit | grep -E 'golang.org/x/sys[[:space:]]+v0\.47\.0'
 
-FROM node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe
+# Base runtime is Fedora 44: the native home of the bootc + OCI tooling
+# (bootc, podman, buildah, skopeo). Node is installed via nvm below.
+FROM quay.io/fedora/fedora:44@sha256:7011f51bd8089d345be42d41f0aa3190d258823528852a5e7ec976fe2fd20f53
 
 # ---------- Build args ----------
 ARG GITHUB_CLI_VERSION
 ARG FZF_VERSION
 ARG LAZYGIT_VERSION
+# renovate: datasource=github-releases depName=nvm-sh/nvm
+ARG NVM_VERSION=0.40.3
+# renovate: datasource=node depName=node
+ARG NODE_VERSION=24.21.0
 # renovate: datasource=github-releases depName=just-containers/s6-overlay
 ARG S6_OVERLAY_VERSION=3.2.3.2
 # renovate: datasource=github-releases depName=dandavison/delta
@@ -184,7 +190,6 @@ ARG PIP_VENDOR_PKG_RESOURCES_VERSION=78.1.1
 ARG PIP_VENDOR_PKG_RESOURCES_SHA256=fcc17fd9cd898242f6b4adfaca46137a9edef687f43e6f78469692a5e70d851d
 # renovate: datasource=pypi depName=setuptools
 ARG SETUPTOOLS_VERSION=84.0.0
-ARG RELEASE_APT_REFRESH=2026-09-24
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.source=https://github.com/aussielunix/HolyCode \
@@ -222,22 +227,44 @@ LABEL org.opencontainers.image.source=https://github.com/aussielunix/HolyCode \
     io.holycode.version.numpy=${NUMPY_VERSION}
 
 # ---------- Environment ----------
-ENV DEBIAN_FRONTEND=noninteractive \
-    LANG=en_US.UTF-8 \
+ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8 \
     DISPLAY=:99 \
     DBUS_SESSION_BUS_ADDRESS=disabled: \
-    CHROME_PATH=/usr/bin/chromium \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
+    CHROME_PATH=/usr/bin/chromium-browser \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
     CHROMIUM_FLAGS="--disable-gpu --disable-dev-shm-usage" \
     OPENCODE_DISABLE_AUTOUPDATE=true \
-    OPENCODE_DISABLE_TERMINAL_TITLE=true
+    OPENCODE_DISABLE_TERMINAL_TITLE=true \
+    # nvm-managed Node runtime; global npm packages land in /usr/local to keep
+    # their canonical paths and the `npm prefix -g = /usr/local` checks intact.
+    NVM_DIR=/opt/nvm \
+    NPM_CONFIG_PREFIX=/usr/local \
+    # /usr/local/bin precedes the nvm bin so the globally-upgraded npm (installed
+    # into /usr/local) shadows nvm's bundled one; node itself still resolves from
+    # the nvm runtime dir (no /usr/local/bin/node is created).
+    PATH="/usr/local/bin:/usr/local/sbin:/opt/nvm/versions/node/v${NODE_VERSION}/bin:${PATH}"
 ENV OPENSPEC_TELEMETRY=0
 
+# ---------- Base packages + Node (via nvm) ----------
+# Fedora 44 provides no Debian node base image; install a pinned Node build with
+# nvm into /opt/nvm. Global npm packages are redirected to /usr/local (see ENV).
+RUN unset NPM_CONFIG_PREFIX && \
+    dnf -y install \
+        curl tar xz ca-certificates git glibc-langpack-en sudo \
+    && dnf clean all \
+    && export NVM_DIR="${NVM_DIR}" \
+    && mkdir -p "${NVM_DIR}" \
+    && curl --disable --retry 8 --retry-all-errors --retry-max-time 300 --remove-on-error --connect-timeout 15 --max-time 300 -fsSL \
+         "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh" \
+         | PROFILE=/dev/null NVM_DIR="${NVM_DIR}" bash \
+    && . "${NVM_DIR}/nvm.sh" \
+    && nvm install "${NODE_VERSION}" \
+    && nvm alias default "${NODE_VERSION}" \
+    && nvm cache clear \
+    && node --version | grep -F "v${NODE_VERSION}" \
+    && npm --version
 # ---------- s6-overlay v3 (multi-arch) ----------
-RUN test -n "${RELEASE_APT_REFRESH}" && apt-get update && apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends xz-utils curl ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
 RUN S6_ARCH=$(case "$TARGETARCH" in arm64) echo "aarch64";; *) echo "x86_64";; esac) && \
     S6_ARCH_SHA256=$(case "$TARGETARCH" in \
       arm64) echo "b17f17a82e7a515c682a91edaf2ffdabb73f891981b6c1fd712115693a2f8b4c";; \
@@ -254,13 +281,15 @@ RUN S6_ARCH=$(case "$TARGETARCH" in arm64) echo "aarch64";; *) echo "x86_64";; e
     rm /tmp/s6-overlay-*.tar.xz
 
 # ---------- Locale configuration ----------
-RUN apt-get update && apt-get install -y --no-install-recommends locales sudo && rm -rf /var/lib/apt/lists/* && \
-    sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+RUN locale -a | grep -qi '^en_US' && \
+    localedef -i en_US -f UTF-8 en_US.UTF-8 2>/dev/null || true
 
-# ---------- Rename node user to agent1 ----------
-# The Node slim base already has UID 1000 as 'node', rename it to 'agent1'
-RUN usermod -l agent1 -d /home/agent1 -m node && \
-    groupmod -n agent1 node && \
+# ---------- Create agent1 user ----------
+# Fedora's base has no pre-existing UID 1000 user; create agent1 with a
+# persistent home directory and passwordless sudo.
+RUN groupadd --gid 1000 agent1 && \
+    useradd --uid 1000 --gid 1000 --home-dir /home/agent1 --create-home --shell /bin/bash agent1 && \
+    mkdir -p /home/agent1 && \
     echo "agent1 ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/agent1 && \
     chmod 0440 /etc/sudoers.d/agent1
 
@@ -268,11 +297,11 @@ RUN usermod -l agent1 -d /home/agent1 -m node && \
 # dockerd must keep its data root on the machine's /storage ext4 disk because the
 # smolvm rootfs is an overlay and Docker's overlay2 cannot nest on it. See the
 # smol-machines docker-in-a-machine guide and the Smolfile.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      docker.io docker-cli docker-buildx docker-compose \
-    && rm -rf /var/lib/apt/lists/* \
+RUN dnf -y install moby-engine docker-buildx docker-compose \
+    && dnf clean all \
     && usermod -aG docker agent1 \
-    && docker --version
+    && docker --version \
+    && docker compose version
 
 # Convenience entry to start dockerd against the /storage ext4 disk. On the
 # managed/cloud path each exec runs in its own mount namespace, so point dockerd
@@ -282,10 +311,29 @@ RUN printf '#!/bin/sh\nset -e\nif docker info >/dev/null 2>&1; then exit 0; fi\n
 # ---------- QEMU (test qcow / disk images) ----------
 # Run inside the microVM with KVM acceleration. The machine must be started with
 # --nested / nested=true so /dev/kvm is exposed (see Smolfile).
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      qemu-system-x86 qemu-utils qemu-block-extra \
-    && rm -rf /var/lib/apt/lists/* \
+RUN dnf -y install qemu-system-x86 qemu-img \
+    && dnf clean all \
     && qemu-system-x86_64 --version && qemu-img --version
+
+# ---------- bootc / OCI artifact tooling ----------
+# Fedora natively packages the full bootc stack for building, inspecting and
+# publishing bootable OCI (container) images:
+#   - podman / buildah  : build the bootc container image from a Containerfile
+#   - skopeo            : inspect / copy OCI artifacts between registries
+#   - bootc             : container-native install/upgrade (incl. to-disk)
+# Nested container builds (the host rootfs is itself an overlay) need a
+# storage driver that works without either a nested overlay mount or a
+# /dev/fuse device, so pin containers storage to the always-available `vfs`
+# driver. To produce qcow2/raw/Anaconda disk images for QEMU, run the
+# quay.io/bootc-image-builder/bootc-image-builder image with podman here.
+RUN dnf -y install bootc podman buildah skopeo fuse-overlayfs \
+    && dnf clean all \
+    && printf '[storage]\ndriver = "vfs"\nrunroot = "/run/containers/storage"\ngraphroot = "/var/lib/containers/storage"\n' \
+         > /etc/containers/storage.conf \
+    && bootc --version \
+    && podman --version \
+    && buildah --version \
+    && skopeo --version
 RUN printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/dev/null 2>&1 && sudo -n start-dockerd >/dev/null 2>&1\n' >> /home/agent1/.bashrc && \
     printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/dev/null 2>&1 && sudo -n start-dockerd >/dev/null 2>&1\n' >> /home/agent1/.profile && \
     chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile
@@ -296,22 +344,21 @@ RUN printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/
 # ==============================================================================
 
 # ---------- Core tools ----------
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN dnf -y install \
     # Shell essentials
-    git curl wget jq unzip zip tar tree less vim \
+    git curl wget2 jq unzip zip tar tree less vim-enhanced \
     # Search and navigation
     ripgrep fd-find bat bubblewrap \
     # Process and network
-    htop procps iproute2 lsof strace \
+    htop procps-ng iproute lsof strace \
     # Build essentials (needed for native npm addons)
-    build-essential pkg-config \
-    postgresql-client-17 redis-tools sqlite3 \
+    gcc gcc-c++ make pkgconf-pkg-config \
+    postgresql redis sqlite \
     # SSH client (NOT server)
-    openssh-client \
-    imagemagick \
-    fonts-inter \
+    openssh-clients \
+    ImageMagick \
     tmux \
-    && rm -rf /var/lib/apt/lists/*
+    && dnf clean all
 
 RUN chmod u+s /usr/bin/bwrap
 
@@ -322,13 +369,13 @@ RUN ln -sf /usr/bin/batcat /usr/local/bin/bat 2>/dev/null || true
 COPY --from=fzf-builder /out/fzf /usr/local/bin/fzf
 
 # ---------- Python 3 (for user projects) ----------
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-venv \
-    && rm -rf /var/lib/apt/lists/*
+RUN dnf -y install python3 python3-pip python3-devel patch which \
+    && dnf clean all
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    pandoc ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+RUN dnf -y install pandoc-cli ffmpeg-free \
+    && dnf clean all \
+    && pandoc --version | head -1 \
+    && ffmpeg -version | head -1
 
 # ---------- GitHub CLI ----------
 COPY --from=github-cli-builder /out/gh /usr/local/bin/gh
@@ -369,32 +416,35 @@ RUN EZA_ARCH=$(case "$TARGETARCH" in arm64) echo "aarch64";; *) echo "x86_64";; 
     rm /tmp/eza.tar.gz
 
 # ---------- Headless browser (Chromium + Xvfb + fonts) ----------
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    chromium chromium-sandbox \
-    xvfb \
-    fonts-liberation2 fonts-dejavu-core fonts-noto-core fonts-noto-color-emoji \
-    && test -u /usr/lib/chromium/chrome-sandbox \
-    && dpkg-query -W -f='${Version}\n' chromium | grep -E '^(15[1-9]|1[6-9][0-9]|[2-9][0-9]{2})\.' \
-    && test "$(dpkg-query -W -f='${Version}' chromium)" = "$(dpkg-query -W -f='${Version}' chromium-sandbox)" \
-    && rm -rf /var/lib/apt/lists/*
+RUN dnf -y install \
+    chromium \
+    xorg-x11-server-Xvfb \
+    liberation-sans-fonts liberation-mono-fonts liberation-serif-fonts \
+    dejavu-sans-mono-fonts google-noto-sans-fonts google-noto-color-emoji-fonts \
+    && dnf clean all \
+    # Fedora ships the userns sandbox (not a setuid helper), so require the
+    # sandbox binary to exist rather than carry the setuid bit.
+    && test -x /usr/lib64/chromium-browser/chrome-sandbox \
+    && test -x /usr/bin/chromium-browser \
+    && rpm -q --qf '%{VERSION}\n' chromium | grep -E '^(15[1-9]|1[6-9][0-9]|[2-9][0-9]{2})\.' \
+    && chromium-browser --version
 
 # ---------- Python packages ----------
 COPY config/python-requirements.lock /usr/local/share/holycode/python-requirements.lock
 COPY config/python-seed-requirements.lock /usr/local/share/holycode/python-seed-requirements.lock
 COPY patches/pip-vendored-pkg-resources-78.1.1.patch /tmp/pip-vendored-pkg-resources.patch
-RUN python3 -m venv /tmp/holycode-pip-bootstrap && \
+RUN pyver="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')" && \
+    python3 -m venv /tmp/holycode-pip-bootstrap && \
     /tmp/holycode-pip-bootstrap/bin/python -m pip install --no-cache-dir --upgrade \
       --require-hashes -r /usr/local/share/holycode/python-seed-requirements.lock && \
     /tmp/holycode-pip-bootstrap/bin/python -m pip install --no-cache-dir --upgrade \
-      --target /usr/local/lib/python3.13/dist-packages \
+      --target "/usr/local/lib/python${pyver}/site-packages" \
       --require-hashes -r /usr/local/share/holycode/python-seed-requirements.lock && \
     install -m 0755 /tmp/holycode-pip-bootstrap/bin/pip /usr/local/bin/pip && \
     sed -i '1c#!/usr/bin/python3' /usr/local/bin/pip && \
     ln -sf pip /usr/local/bin/pip3 && \
-    ln -sf pip /usr/local/bin/pip3.13 && \
+    ln -sf pip "/usr/local/bin/pip3.${pyver}" && \
     rm -rf /tmp/holycode-pip-bootstrap && \
-    test "$(dpkg-query -W -f='${db:Status-Status}' python3-pip 2>/dev/null || true)" != installed && \
-    test "$(dpkg-query -W -f='${db:Status-Status}' python3-setuptools 2>/dev/null || true)" != installed && \
     python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed \
       --require-hashes -r /usr/local/share/holycode/python-requirements.lock
 
@@ -426,7 +476,7 @@ RUN python3 -m pip install --no-cache-dir --break-system-packages --ignore-insta
       "$PIP_VENDOR_DIR/bom.cdx.json" "$PIP_VENDOR_MSGPACK_VERSION" "$PIP_VENDOR_PKG_RESOURCES_VERSION" && \
     rm -rf /tmp/msgpack /tmp/setuptools /tmp/msgpack.tar.gz /tmp/setuptools.tar.gz \
       /tmp/pip-vendored-pkg-resources.patch && \
-    rm -rf /var/lib/apt/lists/* && \
+    dnf clean all >/dev/null 2>&1 || true; \
     python3 -m pip --version | grep -F "pip ${PIP_VERSION}" && \
     python3 -c 'import pip._vendor.msgpack as msgpack; assert msgpack.__version__ == "1.2.2"; assert msgpack.unpackb(msgpack.packb({"holycode": True})) == {"holycode": True}; import pip._vendor.pkg_resources' && \
     _PIP_USE_IMPORTLIB_METADATA=0 python3 -m pip list --format=json >/dev/null && \
@@ -435,7 +485,13 @@ RUN python3 -m pip install --no-cache-dir --break-system-packages --ignore-insta
 
 RUN rm -f /usr/local/bin/dotenv
 
+# Install the pinned npm into /usr/local (respecting NPM_CONFIG_PREFIX=/usr/local,
+# so it lands at /usr/local/lib/node_modules/npm and its vulnerability patches
+# below apply to the canonical location). After the install, clear the shell's
+# command hash so the freshly-installed /usr/local/bin/npm is used instead of the
+# stale cache pointing at nvm's bundled npm.
 RUN npm install -g --ignore-scripts "npm@${NPM_VERSION}" && \
+    hash -r && \
     test "$(npm --version)" = "${NPM_VERSION}" && \
     rm -rf /root/.npm
 RUN test "$(npm view "brace-expansion@${NPM_BRACE_EXPANSION_VERSION}" dist.integrity)" = \
@@ -741,7 +797,7 @@ RUN mkdir -p /usr/local/share/holycode/python-seed && \
       --require-hashes -r /usr/local/share/holycode/python-seed-requirements.lock
 
 RUN mkdir -p /usr/local/share/holycode && \
-    dpkg-query -W -f='${binary:Package}\t${Version}\n' | sort > /usr/local/share/holycode/dpkg-inventory.txt
+    rpm -qa --qf '%{NAME}\t%{VERSION}-%{RELEASE}\n' | sort > /usr/local/share/holycode/pkg-inventory.txt
 
 # ---------- Copy config files ----------
 COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh

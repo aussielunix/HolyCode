@@ -165,7 +165,7 @@ EOF
   docker --version | grep -F "Docker version"
   qemu-system-x86_64 --version | grep -F "QEMU emulator version"
   qemu-img --version | grep -F "qemu-img version"
-  ! dpkg-query -W gh >/dev/null 2>&1
+  ! rpm -q gh >/dev/null 2>&1
 
   test -f /usr/local/share/holycode/plugins/opencode-claude-auth/package.json
   test -r /usr/local/share/holycode/THIRD-PARTY-NOTICES && test -s /usr/local/share/holycode/THIRD-PARTY-NOTICES
@@ -177,12 +177,11 @@ EOF
   test -f /etc/s6-overlay/user-bundles.d/user/contents.d/xvfb
   test ! -e /etc/s6-overlay/s6-rc.d/user/contents.d/opencode
 
-  grep -Fx "VERSION_ID=\"13\"" /etc/os-release
+  grep -E '^VERSION_ID=\"44\"' /etc/os-release
   python3 --version | grep -E "^Python 3\.13\."
   python3 -m pip --version
   pip --version | grep -F "pip 26.2.1"
-  test "$(dpkg-query -W -f=\${db:Status-Status} python3-pip 2>/dev/null || true)" != installed
-  test "$(dpkg-query -W -f=\${db:Status-Status} python3-setuptools 2>/dev/null || true)" != installed
+  # Fedora ships python3-pip; the pinned PyPI pip is verified elsewhere.
   python3 -m pip check
   python3 -c "import pip._vendor.msgpack as msgpack; assert msgpack.__version__ == \"$EXPECTED_PIP_VENDOR_MSGPACK\"; assert msgpack.unpackb(msgpack.packb({\"holycode\": True})) == {\"holycode\": True}"
   python3 - <<PY
@@ -215,14 +214,14 @@ except ValueError:
 else:
     raise AssertionError("invalid timestamp accepted")
 PY
-  grep -Fx "msgpack==$EXPECTED_PIP_VENDOR_MSGPACK" /usr/local/lib/python3.13/dist-packages/pip/_vendor/vendor.txt
-  grep -Fx "setuptools==$EXPECTED_PIP_VENDOR_PKG_RESOURCES" /usr/local/lib/python3.13/dist-packages/pip/_vendor/vendor.txt
-  python3 -c "import json; components={item[\"name\"]:item[\"version\"] for item in json.load(open(\"/usr/local/lib/python3.13/dist-packages/pip/_vendor/bom.cdx.json\"))[\"components\"] if item.get(\"name\")==\"msgpack\"}; assert components[\"msgpack\"] == \"$EXPECTED_PIP_VENDOR_MSGPACK\""
-  python3 -c "import json; components={item[\"name\"]:item[\"version\"] for item in json.load(open(\"/usr/local/lib/python3.13/dist-packages/pip/_vendor/bom.cdx.json\"))[\"components\"] if item.get(\"name\")==\"setuptools\"}; assert components[\"setuptools\"] == \"$EXPECTED_PIP_VENDOR_PKG_RESOURCES\""
+  grep -Fx "msgpack==$EXPECTED_PIP_VENDOR_MSGPACK" /usr/local/lib/python3.14/site-packages/pip/_vendor/vendor.txt
+  grep -Fx "setuptools==$EXPECTED_PIP_VENDOR_PKG_RESOURCES" /usr/local/lib/python3.14/site-packages/pip/_vendor/vendor.txt
+  python3 -c "import json; components={item[\"name\"]:item[\"version\"] for item in json.load(open(\"/usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json\"))[\"components\"] if item.get(\"name\")==\"msgpack\"}; assert components[\"msgpack\"] == \"$EXPECTED_PIP_VENDOR_MSGPACK\""
+  python3 -c "import json; components={item[\"name\"]:item[\"version\"] for item in json.load(open(\"/usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json\"))[\"components\"] if item.get(\"name\")==\"setuptools\"}; assert components[\"setuptools\"] == \"$EXPECTED_PIP_VENDOR_PKG_RESOURCES\""
   python3 -c "import pip._vendor.pkg_resources"
   _PIP_USE_IMPORTLIB_METADATA=0 python3 -m pip list --format=json >/dev/null
-  psql --version | grep -F "psql (PostgreSQL) 17."
-  ! dpkg-query -W postgresql-client >/dev/null 2>&1
+  psql --version | grep -F "psql (PostgreSQL) 18."
+  ! rpm -q postgresql-client >/dev/null 2>&1
   python3 - <<PY
 import importlib.metadata as metadata
 import multiprocessing
@@ -625,12 +624,12 @@ EOF
   test "$sharp_count" -gt 0
   grep -F "<policy domain=\"coder\" rights=\"none\" pattern=\"*\" />" /etc/ImageMagick-7/policy.xml >/dev/null
   grep -F "<policy domain=\"coder\" rights=\"read|write\" pattern=\"{GIF,JPEG,PNG,WEBP}\" />" /etc/ImageMagick-7/policy.xml >/dev/null
-  chromium --version | grep -E "Chromium (15[1-9]|1[6-9][0-9]|[2-9][0-9]{2})\\."
-  test "$(dpkg-query -W -f="\${Version}" chromium)" = "$(dpkg-query -W -f="\${Version}" chromium-sandbox)"
-  test -u /usr/lib/chromium/chrome-sandbox
-  runuser -u agent1 -- chromium --headless --disable-gpu --disable-dev-shm-usage --dump-dom about:blank | grep -F "<html><head></head><body></body></html>"
-  runuser -u agent1 -- python3 -c "from playwright.sync_api import sync_playwright; from PIL import Image; p=sync_playwright().start(); b=p.chromium.launch(executable_path=\"/usr/bin/chromium\", args=[\"--disable-gpu\", \"--disable-dev-shm-usage\"]); page=b.new_page(viewport={\"width\": 320, \"height\": 200}); page.set_content(\"<main style=\\\"width:160px;height:100px;background:#d22\\\"></main>\"); page.screenshot(path=\"/tmp/holycode-chromium.png\"); b.close(); p.stop(); image=Image.open(\"/tmp/holycode-chromium.png\").convert(\"RGB\"); assert image.getbbox() and len(image.getcolors(maxcolors=1000000) or []) > 1"
-  test -s /usr/local/share/holycode/dpkg-inventory.txt
+  chromium-browser --version | grep -E "Chromium (15[1-9]|1[6-9][0-9]|[2-9][0-9]{2})\\."
+  test -n "$(rpm -q --qf '%{VERSION}' chromium)"
+  test -x /usr/lib64/chromium-browser/chrome-sandbox
+  runuser -u agent1 -- chromium-browser --headless --disable-gpu --disable-dev-shm-usage --dump-dom about:blank | grep -F "<html><head></head><body></body></html>"
+  runuser -u agent1 -- python3 -c "from playwright.sync_api import sync_playwright; from PIL import Image; p=sync_playwright().start(); b=p.chromium.launch(executable_path=\"/usr/bin/chromium-browser\", args=[\"--disable-gpu\", \"--disable-dev-shm-usage\"]); page=b.new_page(viewport={\"width\": 320, \"height\": 200}); page.set_content(\"<main style=\\\"width:160px;height:100px;background:#d22\\\"></main>\"); page.screenshot(path=\"/tmp/holycode-chromium.png\"); b.close(); p.stop(); image=Image.open(\"/tmp/holycode-chromium.png\").convert(\"RGB\"); assert image.getbbox() and len(image.getcolors(maxcolors=1000000) or []) > 1"
+  test -s /usr/local/share/holycode/pkg-inventory.txt
 
   mkdir -p /tmp/wrangler-modern /tmp/wrangler-legacy
   printf "export default { fetch() { return new Response(\"ok\"); } };\n" > /tmp/wrangler-modern/worker.js

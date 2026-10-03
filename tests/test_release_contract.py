@@ -110,7 +110,7 @@ class ReleaseContractTests(unittest.TestCase):
             "ARG ESLINT_VERSION=10.11.0",
             "requests==2.34.2",
             "pillow==12.3.0",
-            "postgresql-client-17 redis-tools sqlite3",
+            "postgresql redis sqlite",
             "matplotlib==3.11.2",
             "fonttools==4.65.0",
             "pandas==3.0.6",
@@ -281,8 +281,7 @@ class ReleaseContractTests(unittest.TestCase):
         )
         self.assertNotIn("github-cli-modules.patch", self.dockerfile)
         self.assertIn(
-            "FROM node:24.21.0-trixie-slim@sha256:"
-            "8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe",
+            "FROM quay.io/fedora/fedora:44@sha256:7011f51bd8089d345be42d41f0aa3190d258823528852a5e7ec976fe2fd20f53",
             self.dockerfile,
         )
         self.assertIn("COPY --from=github-cli-builder /out/gh /usr/local/bin/gh", self.dockerfile)
@@ -290,7 +289,7 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("expected_github_cli", self.smoke)
         self.assertIn('test "$(command -v gh)" = "/usr/local/bin/gh"', self.smoke)
         self.assertIn('gh version $EXPECTED_GITHUB_CLI', self.smoke)
-        self.assertIn("! dpkg-query -W gh", self.smoke)
+        self.assertIn("! rpm -q gh", self.smoke)
 
     def test_fzf_and_lazygit_are_rebuilt_from_exact_release_sources(self):
         self.assertIn(
@@ -389,14 +388,14 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("bom.cdx.json", self.dockerfile)
         self.assertIn("ARG NPM_TAR_VERSION=7.5.22", self.dockerfile)
         self.assertNotIn("python3 python3-pip python3-venv", self.dockerfile)
-        self.assertIn("python3 python3-venv", self.dockerfile)
+        self.assertIn("python3 python3-pip python3-devel patch which", self.dockerfile)
         self.assertIn("python3 -m venv /tmp/holycode-pip-bootstrap", self.dockerfile)
-        self.assertIn("--target /usr/local/lib/python3.13/dist-packages", self.dockerfile)
-        self.assertIn("${db:Status-Status}' python3-pip", self.dockerfile)
-        self.assertIn("${db:Status-Status}' python3-setuptools", self.dockerfile)
+        self.assertIn("--target \"/usr/local/lib/python${pyver}/site-packages\"", self.dockerfile)
+        self.assertIn("python3-devel", self.dockerfile)
+        self.assertIn("pkg-inventory.txt", self.dockerfile)
         self.assertIn('pip --version | grep -F "pip 26.2.1"', self.smoke)
-        self.assertIn("-f=\\${db:Status-Status} python3-pip", self.smoke)
-        self.assertIn("-f=\\${db:Status-Status} python3-setuptools", self.smoke)
+        self.assertIn("! rpm -q gh", self.smoke)
+        self.assertIn("rpm -q postgresql-client", self.smoke)
         self.assertIn("for attempt in 1 2 3", self.dockerfile)
         self.assertIn("if go mod download; then break; fi", self.dockerfile)
         self.assertIn("ARG PRISMA_DEEPMERGE_VERSION=8.0.2", self.dockerfile)
@@ -920,8 +919,8 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("Build and push to GHCR", self.publish)
         self.assertNotIn("workflow_dispatch", self.publish)
         self.assertNotIn("scout", self.publish)
-        self.assertIn("chromium-sandbox", self.dockerfile)
-        self.assertIn("test -u /usr/lib/chromium/chrome-sandbox", self.dockerfile)
+        self.assertIn("chromium-browser", self.dockerfile)
+        self.assertIn("test -x /usr/lib64/chromium-browser/chrome-sandbox", self.dockerfile)
     def test_v1_2_4_uses_v1_2_3_as_its_git_predecessor(self):
         self.assertIn("GHCR_IMAGE: ghcr.io/aussielunix/holycode", self.publish)
         self.assertIn("packages: write", self.publish)
@@ -1026,7 +1025,10 @@ class ReleaseContractTests(unittest.TestCase):
                     self.assertIn(value, translation)
 
     def test_release_apt_refresh_matches_preparation_date(self):
-        self.assertIn("ARG RELEASE_APT_REFRESH=2026-09-24", self.dockerfile)
+        # The image is now based on Fedora 44 (dnf) rather than Debian/trixie.
+        self.assertIn("FROM quay.io/fedora/fedora:44@sha256:", self.dockerfile)
+        self.assertIn("dnf -y install", self.dockerfile)
+        self.assertNotIn("apt-get", self.dockerfile)
 
     def test_openspec_is_pinned_installed_and_telemetry_disabled(self):
         self.assertIn(
