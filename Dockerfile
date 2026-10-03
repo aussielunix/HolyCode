@@ -127,6 +127,7 @@ ARG OPENCODE_VERSION=2.0.18
 ARG CLAUDE_CODE_VERSION=2.1.281
 # renovate: datasource=npm depName=@fission-ai/openspec
 ARG OPENSPEC_VERSION=1.13.2
+ARG GOOSE_VERSION=1.52.0
 # renovate: datasource=npm depName=opencode-claude-auth
 ARG CLAUDE_AUTH_PLUGIN_VERSION=2.2.1
 # renovate: datasource=npm depName=typescript
@@ -268,7 +269,7 @@ RUN usermod -l agent1 -d /home/agent1 -m node && \
 # smolvm rootfs is an overlay and Docker's overlay2 cannot nest on it. See the
 # smol-machines docker-in-a-machine guide and the Smolfile.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      docker.io docker-compose \
+      docker.io docker-cli docker-buildx docker-compose \
     && rm -rf /var/lib/apt/lists/* \
     && usermod -aG docker agent1 \
     && docker --version
