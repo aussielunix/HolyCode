@@ -260,9 +260,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends locales sudo &&
 # ---------- Rename node user to agent1 ----------
 # The Node slim base already has UID 1000 as 'node', rename it to 'agent1'
 RUN usermod -l agent1 -d /home/agent1 -m node && \
+    usermod -s /bin/bash agent1 && \
     groupmod -n agent1 node && \
     echo "agent1 ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/agent1 && \
-    chmod 0440 /etc/sudoers.d/agent1
+    chmod 0440 /etc/sudoers.d/agent1 && \
+    test -x /bin/bash
 
 # ---------- Docker Engine (dockerd + CLI) for smolvm Docker-in-a-machine ----------
 # dockerd must keep its data root on the machine's /storage ext4 disk because the
@@ -278,6 +280,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # managed/cloud path each exec runs in its own mount namespace, so point dockerd
 # directly at /storage (no bind-mount dependency).
 RUN printf '#!/bin/sh\nset -e\nif docker info >/dev/null 2>&1; then exit 0; fi\nmkdir -p /storage/docker\nrm -f /var/run/docker.pid\n# start daemon detached; nohup keeps it alive past the wrapper shell\nnohup dockerd --data-root=/storage/docker --storage-driver=overlay2 >/tmp/dockerd.log 2>&1 &\nfor i in $(seq 1 30); do docker info >/dev/null 2>&1 && break; sleep 1; done\n# agent1 runs with only its primary gid (1000), so make the socket world-\n# accessible: in this single-user microVM the unix socket is the trust \n# boundary, and this avoids a root-only docker.sock group problem.\nchmod 0666 /var/run/docker.sock 2>/dev/null || true\ndocker info\n' > /usr/local/bin/start-dockerd && chmod +x /usr/local/bin/start-dockerd
+
+# ---------- QEMU (test qcow / disk images) ----------
+# Run inside the microVM with KVM acceleration. The machine must be started with
+# --nested / nested=true so /dev/kvm is exposed (see Smolfile).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      qemu-system-x86 qemu-utils qemu-block-extra \
+    && rm -rf /var/lib/apt/lists/* \
+    && qemu-system-x86_64 --version && qemu-img --version
 RUN printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/dev/null 2>&1 && sudo -n start-dockerd >/dev/null 2>&1\n' >> /home/agent1/.bashrc && \
     printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/dev/null 2>&1 && sudo -n start-dockerd >/dev/null 2>&1\n' >> /home/agent1/.profile && \
     chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile

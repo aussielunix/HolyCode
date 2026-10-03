@@ -163,6 +163,8 @@ EOF
   gh --version | grep -F "gh version $EXPECTED_GITHUB_CLI"
   goose --version | grep -F "$EXPECTED_GOOSE"
   docker --version | grep -F "Docker version"
+  qemu-system-x86_64 --version | grep -F "QEMU emulator version"
+  qemu-img --version | grep -F "qemu-img version"
   ! dpkg-query -W gh >/dev/null 2>&1
 
   test -f /usr/local/share/holycode/plugins/opencode-claude-auth/package.json
