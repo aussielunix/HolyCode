@@ -1,0 +1,43 @@
+# HolyCode v1.2.9 as a smolvm microVM with Docker inside (see
+# https://smolmachines.com/docs/guides/docker-in-a-machine)
+#
+# The smolvm rootfs is an overlay, which Docker's overlay2 cannot nest on. Docker
+# data MUST live on the machine's dedicated /storage ext4 disk (allocated by
+# `storage = 20`). dockerd is started against /storage/docker via the baked
+# `start-dockerd` helper (see Dockerfile).
+image = "ghcr.io/aussielunix/holycode:v1.3.2"
+
+cpus = 4
+memory = 8192
+# Expose the host's virtualization extensions so QEMU/KVM can run inside the
+# machine (/dev/kvm). This is a CLI flag, not a Smolfile field: pass `--nested`
+# to `smolvm machine create`/`run`.
+net = true
+storage = 40
+
+# Expose the guest /var/run/docker.sock to the host over vsock so a host Docker
+# client can drive the in-VM daemon (DOCKER_HOST=unix://<vm-data-dir>/docker.sock).
+docker_socket = true
+
+user = "1000:1000"
+workdir = "/home/agent1/Code"
+
+# `init` always runs as root. Recursively chown the home (including any root-owned
+# leftovers) and create the Docker data-root on the /storage ext4 disk.
+init = [
+  "chown -R 1000:1000 /home/agent1 2>/dev/null || true",
+  "mkdir -p /storage/docker",
+  # Backup: ensure agent1 is in the docker group (independent of image state).
+  "usermod -aG docker agent1 2>/dev/null || true",
+]
+
+# TOML does NOT expand $HOME/$PWD — use literal absolute host paths.
+volumes = [
+  "/home/lunix/holycode/.config:/home/agent1/.config",
+  "/home/lunix/Code/github.com/aussielunix/HolyCode:/home/agent1/Code",
+]
+
+# Start dockerd (as root via sudo) on the /storage ext4 disk, then keep the
+# machine alive. Interactive bash is opened separately with
+# `smolvm machine exec -it --name goose -- /bin/bash` (or the `smol` helper).
+cmd = ["sh", "-c", "sudo start-dockerd >/dev/null 2>&1; exec sleep infinity"]
