@@ -293,20 +293,80 @@ RUN groupadd --gid 1000 agent1 && \
     echo "agent1 ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/agent1 && \
     chmod 0440 /etc/sudoers.d/agent1
 
-# ---------- Docker Engine (dockerd + CLI) for smolvm Docker-in-a-machine ----------
-# dockerd must keep its data root on the machine's /storage ext4 disk because the
-# smolvm rootfs is an overlay and Docker's overlay2 cannot nest on it. See the
-# smol-machines docker-in-a-machine guide and the Smolfile.
-RUN dnf -y install moby-engine docker-buildx docker-compose \
+# ---------- Rootless Podman (replaces dockerd) for smolvm container workloads ----------
+# Podman is daemonless and runs entirely unprivileged as agent1 in a user
+# namespace: no root daemon, no /var/run/docker.pid, no socket group. Container
+# storage MUST live on the machine's dedicated /storage ext4 disk because the
+# smolvm rootfs is an overlay and container storage cannot nest on it (the same
+# reason Docker's overlay2 data-root was previously pointed at /storage). See
+# the smol-machines docker-in-a-machine guide and the Smolfile.
+#
+# podman-docker provides a `docker`-compatible CLI shim so in-machine tooling
+# that shells out to `docker` (coding agents, compose) keeps working against
+# rootless Podman. fuse-overlayfs gives the fast overlay driver; slirp4netns
+# supplies rootless networking. newuidmap/newgidmap come from shadow-utils.
+RUN dnf -y install podman podman-docker podman-compose fuse-overlayfs slirp4netns \
     && dnf clean all \
-    && usermod -aG docker agent1 \
-    && docker --version \
-    && docker compose version
+    # Grant agent1 subordinate UID/GID ranges so rootless user namespaces can map
+    # container-internal users without colliding with real host ids.
+    && printf 'agent1:100000:65536\n' > /etc/subuid \
+    && printf 'agent1:100000:65536\n' > /etc/subgid \
+    && podman --version \
+    && docker --version
 
-# Convenience entry to start dockerd against the /storage ext4 disk. On the
-# managed/cloud path each exec runs in its own mount namespace, so point dockerd
-# directly at /storage (no bind-mount dependency).
-RUN printf '#!/bin/sh\nset -e\nif docker info >/dev/null 2>&1; then exit 0; fi\nmkdir -p /storage/docker\nrm -f /var/run/docker.pid\n# start daemon detached; nohup keeps it alive past the wrapper shell\nnohup dockerd --data-root=/storage/docker --storage-driver=overlay2 >/tmp/dockerd.log 2>&1 &\nfor i in $(seq 1 30); do docker info >/dev/null 2>&1 && break; sleep 1; done\n# agent1 runs with only its primary gid (1000), so make the socket world-\n# accessible: in this single-user microVM the unix socket is the trust \n# boundary, and this avoids a root-only docker.sock group problem.\nchmod 0666 /var/run/docker.sock 2>/dev/null || true\ndocker info\n' > /usr/local/bin/start-dockerd && chmod +x /usr/local/bin/start-dockerd
+# Convenience entry to prepare rootless Podman's durable storage on the /storage
+# ext4 disk and, on the managed/cloud path, expose the rootless API socket so
+# smolvm's docker_socket=true can bridge it to a host client over vsock. Podman
+# needs no daemon to run; this only ensures the graphroot is on /storage and
+# starts the optional API service for host drive-by.
+RUN cat > /usr/local/bin/start-podman <<'PODEOF'
+#!/bin/sh
+set -e
+RUNTIME=/run/user/1000
+STORAGE=/storage/containers
+RUNROOT=$RUNTIME/containers
+CONF=/home/agent1/.config/containers/storage.conf
+
+mkdir -p "$STORAGE" "$RUNROOT" "$RUNTIME"
+chown -R 1000:1000 "$STORAGE" "$RUNROOT" "$RUNTIME" 2>/dev/null || true
+mkdir -p "$(dirname "$CONF")"
+
+# Prefer the fast overlay driver (via fuse-overlayfs) when /dev/fuse is present;
+# otherwise fall back to the always-available vfs driver (safe on ext4, slower).
+if [ -e /dev/fuse ]; then
+    DRIVER=overlay
+    MOUNT='    mount_program = "/usr/bin/fuse-overlayfs"'
+else
+    DRIVER=vfs
+    MOUNT=''
+fi
+
+if [ ! -f "$CONF" ] || ! grep -q 'graphroot = "/storage/containers"' "$CONF"; then
+    {
+        echo '[storage]'
+        echo "driver = \"$DRIVER\""
+        echo "runroot = \"$RUNROOT\""
+        echo "graphroot = \"$STORAGE\""
+        echo ''
+        echo '[storage.options]'
+        echo "$MOUNT"
+    } > "$CONF"
+fi
+chown 1000:1000 "$CONF"
+
+# Start the rootless API service in the background for host socket access, then
+# bridge it at /var/run/docker.sock so smolvm's vsock docker-socket proxy works.
+SOCK=$RUNTIME/podman/podman.sock
+if [ ! -S "$SOCK" ]; then
+    su -s /bin/sh agent1 -c "XDG_RUNTIME_DIR=$RUNTIME nohup podman system service --time=0 >/tmp/podman-service.log 2>&1 &"
+    for i in $(seq 1 20); do [ -S "$SOCK" ] && break; sleep 1; done
+fi
+ln -sfn "$SOCK" /var/run/docker.sock
+
+# Verify as agent1 that rootless Podman can reach its /storage-backed storage.
+su -s /bin/sh agent1 -c "XDG_RUNTIME_DIR=$RUNTIME exec podman info"
+PODEOF
+chmod +x /usr/local/bin/start-podman
 
 # ---------- QEMU (test qcow / disk images) ----------
 # Run inside the microVM with KVM acceleration. The machine must be started with
@@ -334,8 +394,8 @@ RUN dnf -y install bootc podman buildah skopeo fuse-overlayfs \
     && podman --version \
     && buildah --version \
     && skopeo --version
-RUN printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/dev/null 2>&1 && sudo -n start-dockerd >/dev/null 2>&1\n' >> /home/agent1/.bashrc && \
-    printf '\n# Auto-start Docker daemon for this sandbox.\ncommand -v docker >/dev/null 2>&1 && sudo -n start-dockerd >/dev/null 2>&1\n' >> /home/agent1/.profile && \
+RUN printf '\n# Prepare rootless Podman storage on the /storage ext4 disk for this sandbox.\ncommand -v podman >/dev/null 2>&1 && sudo -n start-podman >/dev/null 2>&1 || true\n' >> /home/agent1/.bashrc && \
+    printf '\n# Prepare rootless Podman storage on the /storage ext4 disk for this sandbox.\ncommand -v podman >/dev/null 2>&1 && sudo -n start-podman >/dev/null 2>&1 || true\n' >> /home/agent1/.profile && \
     chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile
 
 
