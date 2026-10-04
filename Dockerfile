@@ -311,6 +311,9 @@ RUN dnf -y install podman podman-docker podman-compose fuse-overlayfs slirp4netn
     # container-internal users without colliding with real host ids.
     && printf 'agent1:100000:65536\n' > /etc/subuid \
     && printf 'agent1:100000:65536\n' > /etc/subgid \
+    # newuidmap/newgidmap must be setuid root: without it rootless Podman cannot
+    # write the container's uid_map/gid_map when entering a user namespace.
+    && chmod u+s /usr/bin/newuidmap /usr/bin/newgidmap \
     && podman --version \
     && docker --version
 
@@ -319,7 +322,8 @@ RUN dnf -y install podman podman-docker podman-compose fuse-overlayfs slirp4netn
 # smolvm's docker_socket=true can bridge it to a host client over vsock. Podman
 # needs no daemon to run; this only ensures the graphroot is on /storage and
 # starts the optional API service for host drive-by.
-RUN cat > /usr/local/bin/start-podman <<'PODEOF'
+RUN <<'PODEOF'
+cat > /usr/local/bin/start-podman <<'SCRIPT'
 #!/bin/sh
 set -e
 RUNTIME=/run/user/1000
@@ -365,8 +369,9 @@ ln -sfn "$SOCK" /var/run/docker.sock
 
 # Verify as agent1 that rootless Podman can reach its /storage-backed storage.
 su -s /bin/sh agent1 -c "XDG_RUNTIME_DIR=$RUNTIME exec podman info"
-PODEOF
+SCRIPT
 chmod +x /usr/local/bin/start-podman
+PODEOF
 
 # ---------- QEMU (test qcow / disk images) ----------
 # Run inside the microVM with KVM acceleration. The machine must be started with
