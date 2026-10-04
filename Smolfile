@@ -5,7 +5,7 @@
 # Rootless Podman's graphroot MUST live on the machine's dedicated /storage ext4
 # disk (allocated by `storage = 40`). It is prepared against /storage/containers
 # via the baked `start-podman` helper (see Dockerfile).
-image = "ghcr.io/aussielunix/holycode:v1.4.0"
+image = "ghcr.io/aussielunix/holycode:v1.4.1"
 
 cpus = 4
 memory = 8192
@@ -23,9 +23,16 @@ docker_socket = true
 user = "1000:1000"
 workdir = "/home/agent1/Code"
 
-# `init` always runs as root. Recursively chown the home (including any root-owned
-# leftovers) and create the rootless Podman graphroot on the /storage ext4 disk.
+# `init` always runs as root. Create agent1's default container networking
+# config (netns = "host"), recursively chown the home (including any root-owned
+# leftovers), and create the rootless Podman graphroot on the /storage ext4 disk.
+# Writing containers.conf here (rather than baking it into the image) means it
+# lands on the host bind-mounted ~/.config, so it persists across recreations and
+# is the path Podman actually reads once the volume shadows the image copy.
+# Place it before the recursive chown so ownership is set correctly.
 init = [
+  "mkdir -p /home/agent1/.config/containers",
+  "printf '[containers]\\nnetns = \"host\"\\n' > /home/agent1/.config/containers/containers.conf",
   "chown -R 1000:1000 /home/agent1 2>/dev/null || true",
   "mkdir -p /storage/containers",
   "chown 1000:1000 /storage/containers",
