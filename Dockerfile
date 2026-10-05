@@ -398,7 +398,15 @@ RUN dnf -y install bootc podman buildah skopeo fuse-overlayfs \
     && bootc --version \
     && podman --version \
     && buildah --version \
-    && skopeo --version
+    && skopeo --version \
+    # bootc ships /usr/lib/bootc/storage -> ../../../../sysroot/ostree/bootc/storage,
+    # a relative symlink authored for the OSTree deployment depth, not for the
+    # flat layer layout. Its 4x '..' resolves above the extraction root, so
+    # unpacking the layer into a .smolmachine artifact fails with "tar symlink
+    # ... escapes destination directory". Normalize it to an absolute target,
+    # which extractors jail to the guest root. bootc still resolves /sysroot.
+    && ln -sfn /sysroot/ostree/bootc/storage /usr/lib/bootc/storage \
+    && test "$(readlink /usr/lib/bootc/storage)" = "/sysroot/ostree/bootc/storage"
 
 # ---------- osbuild image-builder (disk image building) ----------
 # osbuild/image-builder produces OS disk images (qcow2/raw/Anaconda) without a
