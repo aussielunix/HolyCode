@@ -42,6 +42,10 @@ init = [
 volumes = [
   "/home/lunix/holycode/.config:/home/agent1/.config",
   "/home/lunix/Code/github.com/aussielunix/HolyCode:/home/agent1/Code",
+  # Host agent-rules file, mirrored read-only into the guest. Mounted as a
+  # single file (smolvm supports file bind sources) so the guest cannot mutate
+  # the shared copy; AGENTS.md stays authoritative on the host.
+  "/home/lunix/.agents:/home/agent1/.agents:ro",
 ]
 
 # Prepare rootless Podman storage on the /storage ext4 disk (as root via sudo),
