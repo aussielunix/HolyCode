@@ -399,6 +399,21 @@ RUN dnf -y install bootc podman buildah skopeo fuse-overlayfs \
     && podman --version \
     && buildah --version \
     && skopeo --version
+
+# ---------- osbuild image-builder (disk image building) ----------
+# osbuild/image-builder produces OS disk images (qcow2/raw/Anaconda) without a
+# hypervisor, complementing the bootc/OCI tooling above. It is not in the
+# Fedora repos, so enable the @osbuild/osbuild and @osbuild/image-builder COPR
+# groups first. The COPR stack moves quickly, so pin the package version and
+# verify the CLI at build time. There is no Renovate datasource for COPR
+# packages, so this ARG is versioned manually.
+ARG IMAGE_BUILDER_VERSION=85.0.0
+RUN dnf -y copr enable @osbuild/osbuild \
+    && dnf -y copr enable @osbuild/image-builder \
+    && dnf -y install "image-builder-${IMAGE_BUILDER_VERSION}" \
+    && dnf clean all \
+    && command -v image-builder \
+    && image-builder version | grep -F "version: ${IMAGE_BUILDER_VERSION}"
 RUN printf '\n# Prepare rootless Podman storage on the /storage ext4 disk for this sandbox.\ncommand -v podman >/dev/null 2>&1 && sudo -n start-podman >/dev/null 2>&1 || true\n' >> /home/agent1/.bashrc && \
     printf '\n# Prepare rootless Podman storage on the /storage ext4 disk for this sandbox.\ncommand -v podman >/dev/null 2>&1 && sudo -n start-podman >/dev/null 2>&1 || true\n' >> /home/agent1/.profile && \
     chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile
