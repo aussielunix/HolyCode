@@ -281,7 +281,7 @@ class ReleaseContractTests(unittest.TestCase):
         )
         self.assertNotIn("github-cli-modules.patch", self.dockerfile)
         self.assertIn(
-            "FROM quay.io/fedora/fedora:44@sha256:7011f51bd8089d345be42d41f0aa3190d258823528852a5e7ec976fe2fd20f53",
+            "FROM quay.io/fedora/fedora:44@sha256:ba35579e107f26a4c2c000390fb3ff549f3858a9584a6b5a35f7fa51f54de309",
             self.dockerfile,
         )
         self.assertIn("COPY --from=github-cli-builder /out/gh /usr/local/bin/gh", self.dockerfile)
