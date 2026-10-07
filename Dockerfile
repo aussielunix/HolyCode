@@ -422,6 +422,18 @@ RUN dnf -y copr enable @osbuild/osbuild \
     && dnf clean all \
     && command -v image-builder \
     && image-builder version | grep -F "version: ${IMAGE_BUILDER_VERSION}"
+
+# ---------- cloud-init nocloud seed ISO tooling ----------
+# cloud-localds produces the cloud-init nocloud seed ISO (user-data / meta-data)
+# that is attached to the qcow2/raw images built above so they can boot with
+# cloud-init. It depends on genisoimage, which provides mkisofs. util-linux is
+# needed explicitly: cloud-localds shells out to getopt, which the minimal
+# Fedora base does not ship.
+RUN dnf -y install cloud-utils-cloud-localds util-linux \
+    && dnf clean all \
+    && command -v cloud-localds \
+    && command -v mkisofs \
+    && command -v getopt
 RUN printf '\n# Prepare rootless Podman storage on the /storage ext4 disk for this sandbox.\ncommand -v podman >/dev/null 2>&1 && sudo -n start-podman >/dev/null 2>&1 || true\n' >> /home/agent1/.bashrc && \
     printf '\n# Prepare rootless Podman storage on the /storage ext4 disk for this sandbox.\ncommand -v podman >/dev/null 2>&1 && sudo -n start-podman >/dev/null 2>&1 || true\n' >> /home/agent1/.profile && \
     chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile
