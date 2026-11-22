@@ -109,9 +109,9 @@ RUN git clone --branch "v${LAZYGIT_VERSION}" --depth 1 \
     go version -m /out/lazygit | grep -E 'golang.org/x/text[[:space:]]+v0\.41\.0' && \
     go version -m /out/lazygit | grep -E 'golang.org/x/sys[[:space:]]+v0\.47\.0'
 
-# Base runtime is Fedora 44: the native home of the bootc + OCI tooling
-# (bootc, podman, buildah, skopeo). Node is installed via nvm below.
-FROM quay.io/fedora/fedora:44@sha256:ba35579e107f26a4c2c000390fb3ff549f3858a9584a6b5a35f7fa51f54de309
+# Base runtime is Fedora 44. Rootless Podman (daemonless container engine) is
+# installed for in-machine container workloads; Node is installed via nvm below.
+FROM quay.io/fedora/fedora:44@sha256:b414c09be79dd1f32529b55b096b6bb30435d82ee16fbdbbabf8985eb5f86db0
 
 # ---------- Build args ----------
 ARG GITHUB_CLI_VERSION
@@ -178,8 +178,6 @@ ARG WRANGLER_SHARP_VERSION=0.35.4
 ARG WRANGLER_SHARP_LIBVIPS_VERSION=1.3.3
 # renovate: datasource=npm depName=eslint
 ARG ESLINT_VERSION=10.11.0
-# renovate: datasource=pypi depName=numpy
-ARG NUMPY_VERSION=2.5.3
 # renovate: datasource=pypi depName=pip
 ARG PIP_VERSION=26.2.1
 # renovate: datasource=pypi depName=msgpack
@@ -223,17 +221,11 @@ LABEL org.opencontainers.image.source=https://github.com/aussielunix/HolyCode \
     io.holycode.version.wrangler=${WRANGLER_VERSION} \
     io.holycode.version.wrangler-miniflare=${WRANGLER_MINIFLARE_VERSION} \
     io.holycode.version.wrangler-sharp=${WRANGLER_SHARP_VERSION} \
-    io.holycode.version.wrangler-sharp-libvips=${WRANGLER_SHARP_LIBVIPS_VERSION} \
-    io.holycode.version.numpy=${NUMPY_VERSION}
+    io.holycode.version.wrangler-sharp-libvips=${WRANGLER_SHARP_LIBVIPS_VERSION}
 
 # ---------- Environment ----------
 ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8 \
-    DISPLAY=:99 \
-    DBUS_SESSION_BUS_ADDRESS=disabled: \
-    CHROME_PATH=/usr/bin/chromium-browser \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    CHROMIUM_FLAGS="--disable-gpu --disable-dev-shm-usage" \
     OPENCODE_DISABLE_AUTOUPDATE=true \
     OPENCODE_DISABLE_TERMINAL_TITLE=true \
     # nvm-managed Node runtime; global npm packages land in /usr/local to keep
@@ -373,67 +365,6 @@ SCRIPT
 chmod +x /usr/local/bin/start-podman
 PODEOF
 
-# ---------- QEMU (test qcow / disk images) ----------
-# Run inside the microVM with KVM acceleration. The machine must be started with
-# --nested / nested=true so /dev/kvm is exposed (see Smolfile).
-RUN dnf -y install qemu-system-x86 qemu-img \
-    && dnf clean all \
-    && qemu-system-x86_64 --version && qemu-img --version
-
-# ---------- bootc / OCI artifact tooling ----------
-# Fedora natively packages the full bootc stack for building, inspecting and
-# publishing bootable OCI (container) images:
-#   - podman / buildah  : build the bootc container image from a Containerfile
-#   - skopeo            : inspect / copy OCI artifacts between registries
-#   - bootc             : container-native install/upgrade (incl. to-disk)
-# Nested container builds (the host rootfs is itself an overlay) need a
-# storage driver that works without either a nested overlay mount or a
-# /dev/fuse device, so pin containers storage to the always-available `vfs`
-# driver. To produce qcow2/raw/Anaconda disk images for QEMU, run the
-# quay.io/bootc-image-builder/bootc-image-builder image with podman here.
-RUN dnf -y install bootc podman buildah skopeo fuse-overlayfs \
-    && dnf clean all \
-    && printf '[storage]\ndriver = "vfs"\nrunroot = "/run/containers/storage"\ngraphroot = "/var/lib/containers/storage"\n' \
-         > /etc/containers/storage.conf \
-    && bootc --version \
-    && podman --version \
-    && buildah --version \
-    && skopeo --version \
-    # bootc ships /usr/lib/bootc/storage -> ../../../../sysroot/ostree/bootc/storage,
-    # a relative symlink authored for the OSTree deployment depth, not for the
-    # flat layer layout. Its 4x '..' resolves above the extraction root, so
-    # unpacking the layer into a .smolmachine artifact fails with "tar symlink
-    # ... escapes destination directory". Normalize it to an absolute target,
-    # which extractors jail to the guest root. bootc still resolves /sysroot.
-    && ln -sfn /sysroot/ostree/bootc/storage /usr/lib/bootc/storage \
-    && test "$(readlink /usr/lib/bootc/storage)" = "/sysroot/ostree/bootc/storage"
-
-# ---------- osbuild image-builder (disk image building) ----------
-# osbuild/image-builder produces OS disk images (qcow2/raw/Anaconda) without a
-# hypervisor, complementing the bootc/OCI tooling above. It is not in the
-# Fedora repos, so enable the @osbuild/osbuild and @osbuild/image-builder COPR
-# groups first. The COPR stack moves quickly, so pin the package version and
-# verify the CLI at build time. There is no Renovate datasource for COPR
-# packages, so this ARG is versioned manually.
-ARG IMAGE_BUILDER_VERSION=85.0.0
-RUN dnf -y copr enable @osbuild/osbuild \
-    && dnf -y copr enable @osbuild/image-builder \
-    && dnf -y install "image-builder-${IMAGE_BUILDER_VERSION}" \
-    && dnf clean all \
-    && command -v image-builder \
-    && image-builder version | grep -F "version: ${IMAGE_BUILDER_VERSION}"
-
-# ---------- cloud-init nocloud seed ISO tooling ----------
-# cloud-localds produces the cloud-init nocloud seed ISO (user-data / meta-data)
-# that is attached to the qcow2/raw images built above so they can boot with
-# cloud-init. It depends on genisoimage, which provides mkisofs. util-linux is
-# needed explicitly: cloud-localds shells out to getopt, which the minimal
-# Fedora base does not ship.
-RUN dnf -y install cloud-utils-cloud-localds util-linux \
-    && dnf clean all \
-    && command -v cloud-localds \
-    && command -v mkisofs \
-    && command -v getopt
 RUN printf '\n# Prepare rootless Podman storage on the /storage ext4 disk for this sandbox.\ncommand -v podman >/dev/null 2>&1 && sudo -n start-podman >/dev/null 2>&1 || true\n' >> /home/agent1/.bashrc && \
     printf '\n# Prepare rootless Podman storage on the /storage ext4 disk for this sandbox.\ncommand -v podman >/dev/null 2>&1 && sudo -n start-podman >/dev/null 2>&1 || true\n' >> /home/agent1/.profile && \
     chown 1000:1000 /home/agent1/.bashrc /home/agent1/.profile
@@ -453,7 +384,7 @@ RUN dnf -y install \
     htop procps-ng iproute lsof strace \
     # Build essentials (needed for native npm addons)
     gcc gcc-c++ make pkgconf-pkg-config \
-    postgresql redis sqlite \
+    sqlite \
     # SSH client (NOT server)
     openssh-clients \
     ImageMagick \
@@ -462,15 +393,30 @@ RUN dnf -y install \
 
 RUN chmod u+s /usr/bin/bwrap
 
+# ---------- AWS CLI + just ----------
+# awscli2 is the AWS-provided v2 CLI; `just` is a command runner for
+# project-specific recipe workflows.
+RUN dnf -y install awscli2 just \
+    && dnf clean all \
+    && aws --version \
+    && just --version
+
 # ---------- bat symlink (Debian names it batcat) ----------
 RUN ln -sf /usr/bin/batcat /usr/local/bin/bat 2>/dev/null || true
 
 # ---------- fzf ----------
 COPY --from=fzf-builder /out/fzf /usr/local/bin/fzf
 
-# ---------- Python 3 (for user projects) ----------
-RUN dnf -y install python3 python3-pip python3-devel patch which \
-    && dnf clean all
+# ---------- Python 3 + uv (for user projects) ----------
+# python3 stays: the entrypoint/bootstrap use it (stdlib json/sqlite3) for
+# OpenCode config handling and the CIFS/SQLite-WAL compatibility probe. A
+# pinned pip/setuptools seed is kept for offline venv bootstrap, but the heavy
+# data/AI wheel set (pandas/numpy/matplotlib/fastapi/...) is no longer bundled:
+# uv manages the user's own Python stack on demand.
+RUN dnf -y install python3 python3-pip python3-devel patch which uv \
+    && dnf clean all \
+    && uv --version \
+    && python3 --version
 
 RUN dnf -y install pandoc-cli ffmpeg-free \
     && dnf clean all \
@@ -515,22 +461,13 @@ RUN EZA_ARCH=$(case "$TARGETARCH" in arm64) echo "aarch64";; *) echo "x86_64";; 
     tar -C /usr/local/bin -xzf /tmp/eza.tar.gz && \
     rm /tmp/eza.tar.gz
 
-# ---------- Headless browser (Chromium + Xvfb + fonts) ----------
-RUN dnf -y install \
-    chromium \
-    xorg-x11-server-Xvfb \
-    liberation-sans-fonts liberation-mono-fonts liberation-serif-fonts \
-    dejavu-sans-mono-fonts google-noto-sans-fonts google-noto-color-emoji-fonts \
-    && dnf clean all \
-    # Fedora ships the userns sandbox (not a setuid helper), so require the
-    # sandbox binary to exist rather than carry the setuid bit.
-    && test -x /usr/lib64/chromium-browser/chrome-sandbox \
-    && test -x /usr/bin/chromium-browser \
-    && rpm -q --qf '%{VERSION}\n' chromium | grep -E '^(15[1-9]|1[6-9][0-9]|[2-9][0-9]{2})\.' \
-    && chromium-browser --version
 
-# ---------- Python packages ----------
-COPY config/python-requirements.lock /usr/local/share/holycode/python-requirements.lock
+
+# ---------- Python packaging seed ----------
+# Ship an integrity-verified offline seed for bootstrapping fresh virtual
+# environments without network. python-requirements.lock remains available in
+# the repo as a reference spec for `uv pip install -r config/python-requirements.lock`,
+# but the heavy wheel set is no longer baked into the image (managed via uv).
 COPY config/python-seed-requirements.lock /usr/local/share/holycode/python-seed-requirements.lock
 COPY patches/pip-vendored-pkg-resources-78.1.1.patch /tmp/pip-vendored-pkg-resources.patch
 RUN pyver="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')" && \
@@ -544,9 +481,7 @@ RUN pyver="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')" &&
     sed -i '1c#!/usr/bin/python3' /usr/local/bin/pip && \
     ln -sf pip /usr/local/bin/pip3 && \
     ln -sf pip "/usr/local/bin/pip3.${pyver}" && \
-    rm -rf /tmp/holycode-pip-bootstrap && \
-    python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed \
-      --require-hashes -r /usr/local/share/holycode/python-requirements.lock
+    rm -rf /tmp/holycode-pip-bootstrap
 
 # Replace Debian's vulnerable wheel metadata after installing fixed copies in
 # /usr/local. pip remains available from the exact PyPI package.
@@ -913,11 +848,6 @@ COPY s6-overlay/s6-rc.d/opencode/run /etc/s6-overlay/s6-rc.d/opencode/run
 RUN chmod +x /etc/s6-overlay/s6-rc.d/opencode/run && \
     touch /etc/s6-overlay/user-bundles.d/user/contents.d/opencode
 
-# ---------- s6-overlay service: xvfb ----------
-COPY s6-overlay/s6-rc.d/xvfb/type /etc/s6-overlay/s6-rc.d/xvfb/type
-COPY s6-overlay/s6-rc.d/xvfb/run /etc/s6-overlay/s6-rc.d/xvfb/run
-RUN chmod +x /etc/s6-overlay/s6-rc.d/xvfb/run && \
-    touch /etc/s6-overlay/user-bundles.d/user/contents.d/xvfb
 
 
 # ---------- Working directory ----------

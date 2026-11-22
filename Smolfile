@@ -5,7 +5,7 @@
 # Rootless Podman's graphroot MUST live on the machine's dedicated /storage ext4
 # disk (allocated by `storage = 40`). It is prepared against /storage/containers
 # via the baked `start-podman` helper (see Dockerfile).
-image = "ghcr.io/aussielunix/holycode:v1.4.1"
+image = "ghcr.io/aussielunix/holycode:v1.4.3"
 
 cpus = 4
 memory = 8192
@@ -32,6 +32,7 @@ workdir = "/home/agent1/Code"
 # Place it before the recursive chown so ownership is set correctly.
 init = [
   "mkdir -p /home/agent1/.config/containers",
+  "mkdir -p /home/agent1/.agents",
   "printf '[containers]\\nnetns = \"host\"\\n' > /home/agent1/.config/containers/containers.conf",
   "chown -R 1000:1000 /home/agent1 2>/dev/null || true",
   "mkdir -p /storage/containers",
@@ -41,7 +42,6 @@ init = [
 # TOML does NOT expand $HOME/$PWD — use literal absolute host paths.
 volumes = [
   "/home/lunix/holycode/.config:/home/agent1/.config",
-  "/home/lunix/Code/github.com/aussielunix/HolyCode:/home/agent1/Code",
   # Host agent-rules file, mirrored read-only into the guest. Mounted as a
   # single file (smolvm supports file bind sources) so the guest cannot mutate
   # the shared copy; AGENTS.md stays authoritative on the host.

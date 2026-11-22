@@ -22,7 +22,6 @@ expected_pip_vendor_pkg_resources="$(image_label io.holycode.version.pip-vendor-
 expected_typescript="$(image_label io.holycode.version.typescript)"
 expected_tsx="$(image_label io.holycode.version.tsx)"
 expected_pnpm="$(image_label io.holycode.version.pnpm)"
-expected_numpy="$(image_label io.holycode.version.numpy)"
 expected_wrangler="$(image_label io.holycode.version.wrangler)"
 expected_wrangler_miniflare="$(image_label io.holycode.version.wrangler-miniflare)"
 expected_wrangler_sharp="$(image_label io.holycode.version.wrangler-sharp)"
@@ -68,7 +67,6 @@ docker run --rm -i --network none --security-opt "seccomp=$seccomp_profile" --en
   -e EXPECTED_TYPESCRIPT="$expected_typescript" \
   -e EXPECTED_TSX="$expected_tsx" \
   -e EXPECTED_PNPM="$expected_pnpm" \
-  -e EXPECTED_NUMPY="$expected_numpy" \
   -e EXPECTED_WRANGLER="$expected_wrangler" \
   -e EXPECTED_WRANGLER_MINIFLARE="$expected_wrangler_miniflare" \
   -e EXPECTED_WRANGLER_SHARP="$expected_wrangler_sharp" \
@@ -163,8 +161,6 @@ EOF
   gh --version | grep -F "gh version $EXPECTED_GITHUB_CLI"
   goose --version | grep -F "$EXPECTED_GOOSE"
   docker --version | grep -F "Docker version"
-  qemu-system-x86_64 --version | grep -F "QEMU emulator version"
-  qemu-img --version | grep -F "qemu-img version"
   ! rpm -q gh >/dev/null 2>&1
 
   test -f /usr/local/share/holycode/plugins/opencode-claude-auth/package.json
@@ -174,11 +170,10 @@ EOF
   test ! -e /root/.npm
   node -e "console.log(require(\"/usr/local/share/holycode/plugins/opencode-claude-auth/package.json\").version)" | grep -Fx "$EXPECTED_CLAUDE_AUTH"
   test -f /etc/s6-overlay/user-bundles.d/user/contents.d/opencode
-  test -f /etc/s6-overlay/user-bundles.d/user/contents.d/xvfb
   test ! -e /etc/s6-overlay/s6-rc.d/user/contents.d/opencode
 
   grep -E '^VERSION_ID=\"44\"' /etc/os-release
-  python3 --version | grep -E "^Python 3\.13\."
+  python3 --version | grep -E "^Python 3\.14\."
   python3 -m pip --version
   pip --version | grep -F "pip 26.2.1"
   # Fedora ships python3-pip; the pinned PyPI pip is verified elsewhere.
@@ -220,138 +215,24 @@ PY
   python3 -c "import json; components={item[\"name\"]:item[\"version\"] for item in json.load(open(\"/usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json\"))[\"components\"] if item.get(\"name\")==\"setuptools\"}; assert components[\"setuptools\"] == \"$EXPECTED_PIP_VENDOR_PKG_RESOURCES\""
   python3 -c "import pip._vendor.pkg_resources"
   _PIP_USE_IMPORTLIB_METADATA=0 python3 -m pip list --format=json >/dev/null
-  psql --version | grep -F "psql (PostgreSQL) 18."
   ! rpm -q postgresql-client >/dev/null 2>&1
+  # The heavy data/AI wheel set is no longer bundled: uv manages the user's own
+  # Python stack on demand. Only the integrity-pinned pip/setuptools packaging
+  # seed is shipped.
+  command -v uv
+  uv --version
   python3 - <<PY
 import importlib.metadata as metadata
-import multiprocessing
-import socket
-import time
-from io import BytesIO, StringIO
-
-import httpx
-import matplotlib
-matplotlib.use("Agg")
-from fontTools.ttLib import TTFont
-from matplotlib import pyplot as plt
-from matplotlib.font_manager import findfont
-import numpy as np
-from docx import Document
-from openpyxl import Workbook, load_workbook
-import pandas as pd
-from PIL import Image
-import requests
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-from lxml import etree
-from pydantic import BaseModel
-from tqdm import tqdm
-import uvicorn
-
-assert metadata.version("numpy") == "$EXPECTED_NUMPY"
-assert metadata.version("requests") == "2.34.2"
-assert metadata.version("Pillow") == "12.3.0"
-assert metadata.version("pandas") == "3.0.6"
-assert metadata.version("matplotlib") == "3.11.2"
-assert metadata.version("fonttools") == "4.65.0"
-assert metadata.version("tqdm") == "4.70.1"
-assert metadata.version("fastapi") == "0.141.1"
-assert metadata.version("uvicorn") == "0.53.0"
+assert metadata.version("pip") == "26.2.1"
+assert metadata.version("setuptools") == "84.0.0"
 assert metadata.version("packaging") == "26.3"
 assert metadata.version("wheel") == "0.48.0"
-assert metadata.version("pip") == "26.2.1"
-assert metadata.version("rich") == "15.0.0"
-assert metadata.version("setuptools") == "84.0.0"
 try:
     metadata.version("hermes-agent")
 except metadata.PackageNotFoundError:
     pass
 else:
     raise AssertionError("hermes-agent must not be bundled")
-
-assert np.array([1, 2, 3]).sum() == 6
-assert pd.Series([1, 2, 3]).mean() == 2
-assert etree.fromstring(b"<root><value>holycode</value></root>").findtext("value") == "holycode"
-
-font_path = findfont("DejaVu Sans", fallback_to_default=False)
-with TTFont(font_path) as font:
-    assert "name" in font
-rendered = BytesIO()
-figure, axis = plt.subplots(figsize=(2, 1))
-axis.text(0.5, 0.5, "HolyCode", ha="center", va="center")
-figure.savefig(rendered, format="png")
-plt.close(figure)
-assert rendered.getvalue().startswith(b"\x89PNG\r\n\x1a\n")
-rendered.seek(0)
-converted = BytesIO()
-Image.open(rendered).convert("RGB").save(converted, format="WEBP")
-assert converted.getvalue().startswith(b"RIFF")
-
-workbook = Workbook()
-workbook.active["A1"] = "HolyCode"
-workbook_bytes = BytesIO()
-workbook.save(workbook_bytes)
-workbook_bytes.seek(0)
-assert load_workbook(workbook_bytes).active["A1"].value == "HolyCode"
-
-document = Document()
-document.add_paragraph("HolyCode")
-document_bytes = BytesIO()
-document.save(document_bytes)
-document_bytes.seek(0)
-assert Document(document_bytes).paragraphs[0].text == "HolyCode"
-
-progress = StringIO()
-assert list(tqdm(range(3), file=progress, disable=False)) == [0, 1, 2]
-assert "3/3" in progress.getvalue()
-
-class Health(BaseModel):
-    status: str
-
-app = FastAPI()
-
-@app.get("/health", response_model=Health)
-def health():
-    return {"status": "ok"}
-
-response = TestClient(app).get("/health")
-assert response.status_code == 200
-assert response.json() == {"status": "ok"}
-
-def serve(port):
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="critical")
-
-def stop_server(server):
-    server.terminate()
-    server.join(timeout=5)
-    if server.is_alive():
-        server.kill()
-        server.join(timeout=5)
-    assert not server.is_alive()
-
-with socket.socket() as listener:
-    listener.bind(("127.0.0.1", 0))
-    port = listener.getsockname()[1]
-
-server = multiprocessing.get_context("fork").Process(target=serve, args=(port,))
-server.start()
-url = f"http://127.0.0.1:{port}/health"
-try:
-    for _ in range(30):
-        try:
-            response = requests.get(url, timeout=1)
-            break
-        except requests.RequestException:
-            time.sleep(0.1)
-    else:
-        raise AssertionError("Uvicorn did not start")
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
-    response = httpx.get(url, timeout=1)
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
-finally:
-    stop_server(server)
 PY
   python3 -m venv /tmp/holycode-python-seed
   /tmp/holycode-python-seed/bin/python -m pip install --no-index \
@@ -624,11 +505,6 @@ EOF
   test "$sharp_count" -gt 0
   grep -F "<policy domain=\"coder\" rights=\"none\" pattern=\"*\" />" /etc/ImageMagick-7/policy.xml >/dev/null
   grep -F "<policy domain=\"coder\" rights=\"read|write\" pattern=\"{GIF,JPEG,PNG,WEBP}\" />" /etc/ImageMagick-7/policy.xml >/dev/null
-  chromium-browser --version | grep -E "Chromium (15[1-9]|1[6-9][0-9]|[2-9][0-9]{2})\\."
-  test -n "$(rpm -q --qf '%{VERSION}' chromium)"
-  test -x /usr/lib64/chromium-browser/chrome-sandbox
-  runuser -u agent1 -- chromium-browser --headless --disable-gpu --disable-dev-shm-usage --dump-dom about:blank | grep -F "<html><head></head><body></body></html>"
-  runuser -u agent1 -- python3 -c "from playwright.sync_api import sync_playwright; from PIL import Image; p=sync_playwright().start(); b=p.chromium.launch(executable_path=\"/usr/bin/chromium-browser\", args=[\"--disable-gpu\", \"--disable-dev-shm-usage\"]); page=b.new_page(viewport={\"width\": 320, \"height\": 200}); page.set_content(\"<main style=\\\"width:160px;height:100px;background:#d22\\\"></main>\"); page.screenshot(path=\"/tmp/holycode-chromium.png\"); b.close(); p.stop(); image=Image.open(\"/tmp/holycode-chromium.png\").convert(\"RGB\"); assert image.getbbox() and len(image.getcolors(maxcolors=1000000) or []) > 1"
   test -s /usr/local/share/holycode/pkg-inventory.txt
 
   mkdir -p /tmp/wrangler-modern /tmp/wrangler-legacy

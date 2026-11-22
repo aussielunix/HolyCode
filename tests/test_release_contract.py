@@ -110,7 +110,7 @@ class ReleaseContractTests(unittest.TestCase):
             "ARG ESLINT_VERSION=10.11.0",
             "requests==2.34.2",
             "pillow==12.3.0",
-            "postgresql redis sqlite",
+            "sqlite",
             "matplotlib==3.11.2",
             "fonttools==4.65.0",
             "pandas==3.0.6",
@@ -159,65 +159,24 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("import pip._vendor.pkg_resources", self.smoke)
         self.assertIn("test ! -e /root/.npm", self.smoke)
         for value in (
-            'metadata.version("fonttools") == "4.65.0"',
-            'metadata.version("matplotlib") == "3.11.2"',
-            'metadata.version("pandas") == "3.0.6"',
-            'metadata.version("tqdm") == "4.70.1"',
-            'metadata.version("uvicorn") == "0.53.0"',
-            'matplotlib.use("Agg")',
-            'findfont("DejaVu Sans", fallback_to_default=False)',
-            "TTFont(font_path)",
-            'rendered.getvalue().startswith(b"\\x89PNG\\r\\n\\x1a\\n")',
-            'converted.getvalue().startswith(b"RIFF")',
-            'workbook.active["A1"] = "HolyCode"',
-            'Document(document_bytes).paragraphs[0].text == "HolyCode"',
-            'list(tqdm(range(3), file=progress, disable=False)) == [0, 1, 2]',
-            'uvicorn.run(app, host="127.0.0.1", port=port, log_level="critical")',
-            'requests.get(url, timeout=1)',
-            'httpx.get(url, timeout=1)',
-            'server.start()',
-            'server.terminate()',
-            'server.join(timeout=5)',
-            'server.kill()',
-            'assert not server.is_alive()',
+            'metadata.version("pip") == "26.2.1"',
+            'metadata.version("setuptools") == "84.0.0"',
+            'metadata.version("packaging") == "26.3"',
+            'metadata.version("wheel") == "0.48.0"',
+            "command -v uv",
+            "uv --version",
         ):
             with self.subTest(value=value):
                 self.assertIn(value, self.smoke)
 
     def test_uvicorn_cleanup_forces_a_stubborn_process_dead(self):
-        cleanup = re.search(
-            r"def stop_server\(server\):\n(?:    .*\n)+",
-            self.smoke,
-        )
-        self.assertIsNotNone(cleanup)
-        namespace = {}
-        exec(textwrap.dedent(cleanup.group(0)), namespace)
-
-        class StubbornProcess:
-            def __init__(self):
-                self.alive = True
-                self.events = []
-
-            def terminate(self):
-                self.events.append("terminate")
-
-            def join(self, timeout):
-                self.events.append(("join", timeout))
-
-            def is_alive(self):
-                return self.alive
-
-            def kill(self):
-                self.events.append("kill")
-                self.alive = False
-
-        server = StubbornProcess()
-        namespace["stop_server"](server)
-        self.assertEqual(
-            server.events,
-            ["terminate", ("join", 5), "kill", ("join", 5)],
-        )
-        self.assertFalse(server.is_alive())
+        # The uvicorn/FastAPI runtime stub was removed with the bundled Python
+        # data/AI stack (delegated to uv); the smoke no longer runs a server
+        # process. Only the integrity-pinned pip/setuptools packaging seed and
+        # the uv tool remain.
+        self.assertIn('metadata.version("pip") == "26.2.1"', self.smoke)
+        self.assertIn("command -v uv", self.smoke)
+        self.assertIsNone(re.search(r"def stop_server\(server\):", self.smoke))
 
     def test_each_root_npm_layer_removes_its_cache(self):
         run_instructions = []
@@ -281,7 +240,7 @@ class ReleaseContractTests(unittest.TestCase):
         )
         self.assertNotIn("github-cli-modules.patch", self.dockerfile)
         self.assertIn(
-            "FROM quay.io/fedora/fedora:44@sha256:ba35579e107f26a4c2c000390fb3ff549f3858a9584a6b5a35f7fa51f54de309",
+            "FROM quay.io/fedora/fedora:44@sha256:b414c09be79dd1f32529b55b096b6bb30435d82ee16fbdbbabf8985eb5f86db0",
             self.dockerfile,
         )
         self.assertIn("COPY --from=github-cli-builder /out/gh /usr/local/bin/gh", self.dockerfile)
@@ -488,7 +447,6 @@ class ReleaseContractTests(unittest.TestCase):
             with self.subTest(lighthouse_consumer=value):
                 self.assertIn(value, self.smoke)
         for assertion in (
-            'assert metadata.version("uvicorn") == "0.53.0"',
             'assert metadata.version("packaging") == "26.3"',
             'assert metadata.version("pip") == "26.2.1"',
             'assert metadata.version("setuptools") == "84.0.0"',
@@ -919,8 +877,6 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("Build and push to GHCR", self.publish)
         self.assertNotIn("workflow_dispatch", self.publish)
         self.assertNotIn("scout", self.publish)
-        self.assertIn("chromium-browser", self.dockerfile)
-        self.assertIn("test -x /usr/lib64/chromium-browser/chrome-sandbox", self.dockerfile)
     def test_v1_2_4_uses_v1_2_3_as_its_git_predecessor(self):
         self.assertIn("GHCR_IMAGE: ghcr.io/aussielunix/holycode", self.publish)
         self.assertIn("packages: write", self.publish)
@@ -1446,13 +1402,12 @@ class ReleaseContractTests(unittest.TestCase):
         self.assertIn("EXPECTED_LAZYGIT", self.smoke)
 
     def test_runtime_python_stack_is_exercised(self):
+        # Only the pip/setuptools packaging seed is bundled now; the heavy
+        # data/AI wheel set is delegated to uv.
         for value in (
-            "import numpy as np",
-            "pd.Series",
-            "etree.fromstring",
-            "TestClient",
-            "response_model=Health",
-            "response.status_code == 200",
+            "import importlib.metadata as metadata",
+            'metadata.version("setuptools") == "84.0.0"',
+            "uv --version",
         ):
             with self.subTest(value=value):
                 self.assertIn(value, self.smoke)
