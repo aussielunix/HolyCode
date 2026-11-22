@@ -111,7 +111,7 @@ RUN git clone --branch "v${LAZYGIT_VERSION}" --depth 1 \
 
 # Base runtime is Fedora 44. Rootless Podman (daemonless container engine) is
 # installed for in-machine container workloads; Node is installed via nvm below.
-FROM quay.io/fedora/fedora:44@sha256:b414c09be79dd1f32529b55b096b6bb30435d82ee16fbdbbabf8985eb5f86db0
+FROM quay.io/fedora/fedora:44@sha256:aca68c361f2a89de8a64e8d91a47494f37fad05f88c2f503cdd8a284a74c70ac
 
 # ---------- Build args ----------
 ARG GITHUB_CLI_VERSION
